@@ -87,7 +87,7 @@ class ChessBoard : View() {
         style="-fx-background-color: #669266"
 
         val boardGroup = group {}
-        
+
         fun addCell(image: String, cellX: Int, cellY: Int) {
             boardGroup.add(imageview(image) {
                 scaleX = picturesScale
