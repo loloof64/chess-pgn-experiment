@@ -1,0 +1,4 @@
+Wood patterns : from http://www.pixeden.com (Melamine Wood patterns)
+
+Chess pictures were taken from the Carballo Chess project at Github (Merida set), and sliced with Gimp by loloof64
+https://github.com/albertoruibal/carballo/blob/master/applet/src/main/resources/merida.png
