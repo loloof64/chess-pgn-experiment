@@ -75,7 +75,9 @@ class ChessBoard : View() {
     override val root = pane {
         prefWidth = 9.5*cellsSize
         prefHeight = 9.5*cellsSize
-        style="-fx-background-color: #669266"
+        style {
+            backgroundColor += c("#669266")
+        }
 
         val boardGroup = group {}
 
@@ -134,6 +136,18 @@ class ChessBoard : View() {
             }
         }
 
+        // adding player turn indicator
+        label(""){
+            id = "playerTurn"
+            layoutX = cellsSize * 8.8
+            layoutY = cellsSize * 8.8
+            prefWidth = cellsSize.toDouble() / 2
+            prefHeight = cellsSize.toDouble() / 2
+            style {
+                backgroundColor += c("#FFF")
+            }
+        }
+
         // adding pieces
 
         children.add(piecesGroup)
@@ -152,6 +166,14 @@ class ChessBoard : View() {
                 }
             }
         }
+
+        fun setPlayerTurn(whiteTurn: Boolean) {
+            lookup("#playerTurn").style {
+                backgroundColor += if (whiteTurn) c("#fff") else c("#000")
+            }
+        }
+
+        setPlayerTurn(whiteTurn = false)
     }
 }
 
