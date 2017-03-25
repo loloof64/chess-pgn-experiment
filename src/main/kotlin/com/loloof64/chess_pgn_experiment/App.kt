@@ -65,15 +65,15 @@ class ChessBoard : View() {
                 id = "$rank$file"
                 scaleX = picturesScale
                 scaleY = picturesScale
-                layoutX = cellsSize*(file.toDouble() + 0.25)
-                layoutY = cellsSize*(7.25 -rank.toDouble())
+                layoutX = cellsSize*(file.toDouble() + 0.5)
+                layoutY = cellsSize*(7.5 -rank.toDouble())
             })
         }
     }
 
     override val root = pane {
-        prefWidth = 9.0*cellsSize
-        prefHeight = 9.0*cellsSize
+        prefWidth = 9.5*cellsSize
+        prefHeight = 9.5*cellsSize
         style="-fx-background-color: #669266"
 
         val boardGroup = group {}
@@ -82,8 +82,8 @@ class ChessBoard : View() {
             boardGroup.add(imageview(image) {
                 scaleX = picturesScale
                 scaleY = picturesScale
-                layoutX = cellsSize*(cellX.toDouble() + 0.25)
-                layoutY = cellsSize*(7.25 - cellY.toDouble())
+                layoutX = cellsSize*(cellX.toDouble() + 0.5)
+                layoutY = cellsSize*(7.5 - cellY.toDouble())
             })
         }
 
@@ -104,8 +104,8 @@ class ChessBoard : View() {
                         id = "$rank$file"
                         scaleX = picturesScale
                         scaleY = picturesScale
-                        layoutX = cellsSize*(file.toDouble() + 0.25)
-                        layoutY = cellsSize*(7.25 -rank.toDouble())
+                        layoutX = cellsSize*(file.toDouble() + 0.5)
+                        layoutY = cellsSize*(7.5 -rank.toDouble())
                     })
                 }
             }
