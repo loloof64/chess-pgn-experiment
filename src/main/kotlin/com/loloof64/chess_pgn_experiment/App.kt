@@ -4,6 +4,7 @@ import com.loloof64.chess_core.pieces.*
 import com.loloof64.chess_core.board.ChessBoard as BoardLogic
 import javafx.scene.Group
 import javafx.scene.control.Hyperlink
+import javafx.scene.text.Font
 import javafx.scene.text.Text
 import javafx.scene.text.TextFlow
 import tornadofx.*
@@ -87,12 +88,53 @@ class ChessBoard : View() {
             })
         }
 
+        /// adding cells
+
         for (rank in 0..7){
             for (file in 0..7){
                 val image = if ((rank+file) %2 == 0) "wood_dark.png" else "wood_light.png"
                 addCell(image, file, rank)
             }
         }
+
+        // adding coordinates
+        val font = Font(30.0)
+        val color = c("#1200FC")
+        val filesCoordinates = "ABCDEFGH"
+        (0..7).forEach{ file ->
+            val currentCoord = filesCoordinates[file]
+            label("$currentCoord"){
+                setFont(font)
+                layoutX = cellsSize*(1.06+file)
+                layoutY = cellsSize * 0.05
+                textFill = color
+            }
+            label("$currentCoord"){
+                setFont(font)
+                layoutX = cellsSize*(1.06+file)
+                layoutY = cellsSize * 8.71
+                textFill = color
+            }
+        }
+
+        val rankCoordinates = "87654321"
+        (0..7).forEach { cellLine ->
+            val currentCoord = rankCoordinates[cellLine]
+            label("$currentCoord"){
+                setFont(font)
+                layoutX = cellsSize * 0.21
+                layoutY = cellsSize*(0.96+cellLine)
+                textFill = color
+            }
+            label("$currentCoord"){
+                setFont(font)
+                layoutX = cellsSize * 8.90
+                layoutY = cellsSize*(0.96+cellLine)
+                textFill = color
+            }
+        }
+
+        // adding pieces
 
         children.add(piecesGroup)
         for (rank in 0..7){
