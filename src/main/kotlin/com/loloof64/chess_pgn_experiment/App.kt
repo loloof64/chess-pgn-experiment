@@ -1,7 +1,7 @@
 package com.loloof64.chess_pgn_experiment
 
 import com.loloof64.chess_core.pieces.*
-import com.loloof64.chess_core.board.ChessBoard as BoardLogic
+import com.loloof64.chess_core.game.Game
 import javafx.scene.Group
 import javafx.scene.control.Hyperlink
 import javafx.scene.text.Font
@@ -35,7 +35,7 @@ class ChessBoard : View() {
     val picturesScale = cellsSize.toDouble() / picturesSize
 
     val piecesGroup = Group()
-    var board = BoardLogic("3r2rk/pbq1np2/1p1ppb1p/8/8/2P2N1P/PP1QBPP1/R4RK1 w - - 0 1")
+    var game = Game.fenToGame("3r2rk/pbq1np2/1p1ppb1p/8/8/2P2N1P/PP1QBPP1/R4RK1 w - - 0 1")
 
     fun pieceToImage(piece: ChessPiece?) : String? {
         return when (piece) {
@@ -153,7 +153,7 @@ class ChessBoard : View() {
         children.add(piecesGroup)
         for (rank in 0..7){
             for (file in 0..7){
-                val piece = board[rank, file]
+                val piece = game.board[rank, file]
                 val image = pieceToImage(piece)
                 if (image != null) {
                     piecesGroup.add(imageview(image) {
@@ -173,7 +173,7 @@ class ChessBoard : View() {
             }
         }
 
-        setPlayerTurn(whiteTurn = false)
+        setPlayerTurn(whiteTurn = game.info.whiteTurn)
     }
 }
 

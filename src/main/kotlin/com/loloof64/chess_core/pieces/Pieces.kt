@@ -20,11 +20,37 @@ abstract class ChessPiece(open val whitePlayer: Boolean) {
             }
         }
     }
+
+    abstract fun toFEN() : Char
 }
 
-data class Pawn(override val whitePlayer: Boolean) : ChessPiece(whitePlayer)
-data class Knight(override val whitePlayer: Boolean) : ChessPiece(whitePlayer)
-data class Bishop(override val whitePlayer: Boolean) : ChessPiece(whitePlayer)
-data class Rook(override val whitePlayer: Boolean) : ChessPiece(whitePlayer)
-data class Queen(override val whitePlayer: Boolean) : ChessPiece(whitePlayer)
-data class King(override val whitePlayer: Boolean) : ChessPiece(whitePlayer)
+data class Pawn(override val whitePlayer: Boolean) : ChessPiece(whitePlayer){
+    override fun toFEN(): Char {
+        return if (whitePlayer) 'P' else 'p'
+    }
+}
+data class Knight(override val whitePlayer: Boolean) : ChessPiece(whitePlayer){
+    override fun toFEN(): Char {
+        return if (whitePlayer) 'N' else 'n'
+    }
+}
+data class Bishop(override val whitePlayer: Boolean) : ChessPiece(whitePlayer){
+    override fun toFEN(): Char {
+        return if (whitePlayer) 'B' else 'b'
+    }
+}
+data class Rook(override val whitePlayer: Boolean) : ChessPiece(whitePlayer){
+    override fun toFEN(): Char {
+        return if (whitePlayer) 'R' else 'r'
+    }
+}
+data class Queen(override val whitePlayer: Boolean) : ChessPiece(whitePlayer){
+    override fun toFEN(): Char {
+        return if (whitePlayer) 'Q' else 'q'
+    }
+}
+data class King(override val whitePlayer: Boolean) : ChessPiece(whitePlayer){
+    override fun toFEN(): Char {
+        return if (whitePlayer) 'K' else 'k'
+    }
+}
