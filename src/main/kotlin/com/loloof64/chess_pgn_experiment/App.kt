@@ -2,6 +2,9 @@ package com.loloof64.chess_pgn_experiment
 
 import com.loloof64.chess_core.pieces.*
 import com.loloof64.chess_core.game.Game
+import javafx.animation.KeyFrame
+import javafx.animation.KeyValue
+import javafx.animation.Timeline
 import javafx.scene.Cursor
 import javafx.scene.Group
 import javafx.scene.control.Hyperlink
@@ -11,6 +14,7 @@ import javafx.scene.input.MouseEvent
 import javafx.scene.text.Font
 import javafx.scene.text.Text
 import javafx.scene.text.TextFlow
+import javafx.util.Duration
 import tornadofx.*
 
 class MyApp: App(MainView::class)
@@ -34,19 +38,19 @@ class MainView : View() {
 }
 
 class ChessBoard : View() {
-    val cellsSize = 50.0
-    val picturesSize = 75.0
-    val cursorOffset = cellsSize * 0.50
-    val picturesScale = cellsSize / picturesSize
+    private val cellsSize = 50.0
+    private val picturesSize = 75.0
+    private val cursorOffset = cellsSize * 0.50
+    private val picturesScale = cellsSize / picturesSize
 
-    val piecesGroup = Group()
-    var game = Game.fenToGame("3r2rk/pbq1np2/1p1ppb1p/8/8/2P2N1P/PP1QBPP1/R4RK1 w - - 0 1")
+    private val piecesGroup = Group()
+    private var game = Game.fenToGame("3r2rk/pbq1np2/1p1ppb1p/8/8/2P2N1P/PP1QBPP1/R4RK1 w - - 0 1")
 
-    var turnComponent: Label? = null
-    var currentHighlighter: Label? = null
-    var dragStartHighlighter: Label? = null
-    var dragStartCoordinates: Pair<Int, Int>? = null
-    var movedPieceCursor: ImageView? = null
+    private var turnComponent: Label? = null
+    private var currentHighlighter: Label? = null
+    private var dragStartHighlighter: Label? = null
+    private var dragStartCoordinates: Pair<Int, Int>? = null
+    private var movedPieceCursor: ImageView? = null
 
     fun pieceToImage(piece: ChessPiece?) : String? {
         return when (piece) {
@@ -234,13 +238,33 @@ class ChessBoard : View() {
 
     fun endPieceDragging(evt: MouseEvent) {
         val cellCoords = cellCoordinates(evt)
-        if (dragStartHighlighter != null) root.children.remove(dragStartHighlighter)
+        fun resetDnDStatus(){
+            root.children.remove(movedPieceCursor)
 
-        root.children.remove(movedPieceCursor)
-        movedPieceCursor = null
-        root.cursor = Cursor.DEFAULT
+            movedPieceCursor = null
+            root.cursor = Cursor.DEFAULT
 
-        setHighlightedCell(cellCoords)
+            setHighlightedCell(cellCoords)
+            if (dragStartHighlighter != null) root.children.remove(dragStartHighlighter)
+        }
+
+        if (dragStartCoordinates != null) {
+
+            // cancel animation
+            val animationEndX = cellsSize*(dragStartCoordinates?.first?.toDouble() ?:0.0 + 0.5)
+            val animationEndY = cellsSize*(7.5 - (dragStartCoordinates?.second?.toDouble() ?:0.0))
+            val timeline = Timeline()
+            timeline.keyFrames.add(
+                    KeyFrame(Duration.millis(200.0),
+                        KeyValue(movedPieceCursor?.layoutXProperty(), animationEndX),
+                        KeyValue(movedPieceCursor?.layoutYProperty(), animationEndY))
+            )
+            timeline.play()
+            timeline.setOnFinished {
+                resetDnDStatus()
+            }
+        }
+
     }
 
     fun updatePlayerTurn() {
