@@ -178,6 +178,11 @@ class ChessBoard : View() {
         else return null
     }
 
+    override fun onDock() {
+        super.onDock()
+        updatePlayerTurn()
+    }
+
     fun startPieceDragging(evt: MouseEvent){
         val cellCoords = cellCoordinates(evt)
         if (cellCoords != null){
@@ -188,25 +193,28 @@ class ChessBoard : View() {
     fun updatePlayerTurn() {
         if (turnComponent != null) root.children.remove(turnComponent)
 
-        // adding player turn indicator
         turnComponent = label {
             layoutX = cellsSize * 8.5
             layoutY = cellsSize * 8.5
-            prefWidth = cellsSize / 2
-            prefHeight = cellsSize / 2
+            prefWidth = cellsSize * 0.5
+            prefHeight = cellsSize * 0.5
             style {
                 backgroundColor += c(if (game.info.whiteTurn) "#FFF" else "#000")
+                opacity = 1.0
             }
         }
     }
 
-    fun setHighlightedCell(newValue: Pair<Int, Int>?){
+    fun highlightHoveredCell(evt: MouseEvent){
+        val cellCoords = cellCoordinates(evt)
+        val highlightedStatus = if (cellCoords == null) null else cellCoords
+
         if (currentHighlighter != null) root.children.remove(currentHighlighter)
 
-        if (newValue != null){
+        if (highlightedStatus != null){
             currentHighlighter = label {
-                layoutX = cellsSize * (0.5 + newValue.first)
-                layoutY = cellsSize * (0.5 + newValue.second)
+                layoutX = cellsSize * (0.5 + highlightedStatus.first)
+                layoutY = cellsSize * (0.5 + highlightedStatus.second)
                 prefWidth = cellsSize
                 prefHeight = cellsSize
                 style {
@@ -215,11 +223,6 @@ class ChessBoard : View() {
                 }
             }
         }
-    }
-
-    fun highlightHoveredCell(evt: MouseEvent){
-        val cellCoords = cellCoordinates(evt)
-        setHighlightedCell(if (cellCoords == null) null else cellCoords)
     }
 
 }
