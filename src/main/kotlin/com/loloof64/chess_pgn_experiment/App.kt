@@ -183,7 +183,7 @@ class ChessBoard : View() {
 
         if (inBoard){
             val cellX = ((evt.x - startCoordinate) / cellsSize).toInt()
-            val cellY = ((evt.y - startCoordinate) / cellsSize).toInt()
+            val cellY = 7 - ((evt.y - startCoordinate) / cellsSize).toInt()
             return Pair(cellX, cellY)
         }
         else return null
@@ -201,28 +201,33 @@ class ChessBoard : View() {
 
     fun startPieceDragging(evt: MouseEvent){
         val cellCoords = cellCoordinates(evt)
-        if (cellCoords != null){
-            // Highlight start cell and records it
-            dragStartCoordinates = cellCoords
-            dragStartHighlighter = label {
-                layoutX = cellsSize * (0.5 + cellCoords.first)
-                layoutY = cellsSize * (0.5 + cellCoords.second)
-                prefWidth = cellsSize
-                prefHeight = cellsSize
-                style {
-                    backgroundColor += c("#00F")
-                    opacity = 0.94
+        if (cellCoords != null) {
+            val pieceAtCell = game.board[cellCoords.second, cellCoords.first]
+            val weCanStartDnd = pieceAtCell != null
+
+            if (weCanStartDnd) {
+                // Highlight start cell and records it
+                dragStartCoordinates = cellCoords
+                dragStartHighlighter = label {
+                    layoutX = cellsSize * (0.5 + cellCoords.first)
+                    layoutY = cellsSize * (7.5 - cellCoords.second)
+                    prefWidth = cellsSize
+                    prefHeight = cellsSize
+                    style {
+                        backgroundColor += c("#00F")
+                        opacity = 0.94
+                    }
                 }
-            }
 
 
-            //Set up custom cursor
-            root.cursor = Cursor.NONE
-            movedPieceCursor = imageview("chess_bd.png") {
-                scaleX = picturesScale
-                scaleY = picturesScale
-                layoutX = evt.x - cursorOffset
-                layoutY = evt.y - cursorOffset
+                //Set up custom cursor
+                root.cursor = Cursor.NONE
+                movedPieceCursor = imageview(pieceToImage(pieceAtCell)) {
+                    scaleX = picturesScale
+                    scaleY = picturesScale
+                    layoutX = evt.x - cursorOffset
+                    layoutY = evt.y - cursorOffset
+                }
             }
         }
     }
@@ -266,7 +271,7 @@ class ChessBoard : View() {
         if (cellToHighlight != null) {
             currentHighlighter = label {
                 layoutX = cellsSize * (0.5 + cellToHighlight.first)
-                layoutY = cellsSize * (0.5 + cellToHighlight.second)
+                layoutY = cellsSize * (7.5 -  cellToHighlight.second)
                 prefWidth = cellsSize
                 prefHeight = cellsSize
                 style {
