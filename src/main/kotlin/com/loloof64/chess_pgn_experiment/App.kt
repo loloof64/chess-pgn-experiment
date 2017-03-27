@@ -4,6 +4,8 @@ import com.loloof64.chess_core.pieces.*
 import com.loloof64.chess_core.game.Game
 import javafx.scene.Group
 import javafx.scene.control.Hyperlink
+import javafx.scene.control.Label
+import javafx.scene.input.MouseEvent
 import javafx.scene.text.Font
 import javafx.scene.text.Text
 import javafx.scene.text.TextFlow
@@ -30,12 +32,15 @@ class MainView : View() {
 }
 
 class ChessBoard : View() {
-    val cellsSize = 50
-    val picturesSize = 75
-    val picturesScale = cellsSize.toDouble() / picturesSize
+    val cellsSize = 50.0
+    val picturesSize = 75.0
+    val picturesScale = cellsSize / picturesSize
 
     val piecesGroup = Group()
     var game = Game.fenToGame("3r2rk/pbq1np2/1p1ppb1p/8/8/2P2N1P/PP1QBPP1/R4RK1 w - - 0 1")
+
+    var turnComponent: Label? = null
+    var currentHighlighter: Label? = null
 
     fun pieceToImage(piece: ChessPiece?) : String? {
         return when (piece) {
@@ -73,11 +78,13 @@ class ChessBoard : View() {
     }
 
     override val root = pane {
-        prefWidth = 9.5*cellsSize
-        prefHeight = 9.5*cellsSize
+        prefWidth = 9.0*cellsSize
+        prefHeight = 9.0*cellsSize
         style {
             backgroundColor += c("#669266")
         }
+
+        addEventFilter(MouseEvent.MOUSE_MOVED, this@ChessBoard::highlightHoveredCell)
 
         val boardGroup = group {}
 
@@ -85,8 +92,8 @@ class ChessBoard : View() {
             boardGroup.add(imageview(image) {
                 scaleX = picturesScale
                 scaleY = picturesScale
-                layoutX = cellsSize*(cellX.toDouble() + 0.5)
-                layoutY = cellsSize*(7.5 - cellY.toDouble())
+                layoutX = cellsSize*(cellX.toDouble() + 0.25)
+                layoutY = cellsSize*(7.25 - cellY.toDouble())
             })
         }
 
@@ -100,21 +107,21 @@ class ChessBoard : View() {
         }
 
         // adding coordinates
-        val font = Font(30.0)
+        val font = Font(20.0)
         val color = c("#1200FC")
         val filesCoordinates = "ABCDEFGH"
         (0..7).forEach{ file ->
             val currentCoord = filesCoordinates[file]
             label("$currentCoord"){
                 setFont(font)
-                layoutX = cellsSize*(1.06+file)
-                layoutY = cellsSize * 0.05
+                layoutX = cellsSize*(0.85+file)
+                layoutY = cellsSize * 0.02
                 textFill = color
             }
             label("$currentCoord"){
                 setFont(font)
-                layoutX = cellsSize*(1.06+file)
-                layoutY = cellsSize * 8.71
+                layoutX = cellsSize*(0.85+file)
+                layoutY = cellsSize * 8.53
                 textFill = color
             }
         }
@@ -124,27 +131,15 @@ class ChessBoard : View() {
             val currentCoord = rankCoordinates[cellLine]
             label("$currentCoord"){
                 setFont(font)
-                layoutX = cellsSize * 0.21
-                layoutY = cellsSize*(0.96+cellLine)
+                layoutX = cellsSize * 0.12
+                layoutY = cellsSize*(0.88+cellLine)
                 textFill = color
             }
             label("$currentCoord"){
                 setFont(font)
-                layoutX = cellsSize * 8.90
-                layoutY = cellsSize*(0.96+cellLine)
+                layoutX = cellsSize * 8.70
+                layoutY = cellsSize*(0.88+cellLine)
                 textFill = color
-            }
-        }
-
-        // adding player turn indicator
-        label(""){
-            id = "playerTurn"
-            layoutX = cellsSize * 8.8
-            layoutY = cellsSize * 8.8
-            prefWidth = cellsSize.toDouble() / 2
-            prefHeight = cellsSize.toDouble() / 2
-            style {
-                backgroundColor += c("#FFF")
             }
         }
 
@@ -160,21 +155,73 @@ class ChessBoard : View() {
                         id = "$rank$file"
                         scaleX = picturesScale
                         scaleY = picturesScale
-                        layoutX = cellsSize*(file.toDouble() + 0.5)
-                        layoutY = cellsSize*(7.5 -rank.toDouble())
+                        layoutX = cellsSize*(file.toDouble() + 0.25)
+                        layoutY = cellsSize*(7.25 -rank.toDouble())
                     })
                 }
             }
         }
 
-        fun setPlayerTurn(whiteTurn: Boolean) {
-            lookup("#playerTurn").style {
-                backgroundColor += if (whiteTurn) c("#fff") else c("#000")
+        updatePlayerTurn()
+    }
+
+    fun cellCoordinates(evt: MouseEvent): Pair<Int, Int>?{
+        val startCoordinate = cellsSize * 0.5
+        val endCoordinate = cellsSize * 8.5
+        val inBoard = evt.x in (startCoordinate..endCoordinate) && evt.y in (startCoordinate..endCoordinate)
+
+        if (inBoard){
+            val cellX = ((evt.x - startCoordinate) / cellsSize).toInt()
+            val cellY = ((evt.y - startCoordinate) / cellsSize).toInt()
+            return Pair(cellX, cellY)
+        }
+        else return null
+    }
+
+    fun startPieceDragging(evt: MouseEvent){
+        val cellCoords = cellCoordinates(evt)
+        if (cellCoords != null){
+            //TODO start dragging if not already started
+        }
+    }
+
+    fun updatePlayerTurn() {
+        if (turnComponent != null) root.children.remove(turnComponent)
+
+        // adding player turn indicator
+        turnComponent = label {
+            layoutX = cellsSize * 8.5
+            layoutY = cellsSize * 8.5
+            prefWidth = cellsSize / 2
+            prefHeight = cellsSize / 2
+            style {
+                backgroundColor += c(if (game.info.whiteTurn) "#FFF" else "#000")
             }
         }
-
-        setPlayerTurn(whiteTurn = game.info.whiteTurn)
     }
+
+    fun setHighlightedCell(newValue: Pair<Int, Int>?){
+        if (currentHighlighter != null) root.children.remove(currentHighlighter)
+
+        if (newValue != null){
+            currentHighlighter = label {
+                layoutX = cellsSize * (0.5 + newValue.first)
+                layoutY = cellsSize * (0.5 + newValue.second)
+                prefWidth = cellsSize
+                prefHeight = cellsSize
+                style {
+                    backgroundColor += c("#22FF44")
+                    opacity = 0.6
+                }
+            }
+        }
+    }
+
+    fun highlightHoveredCell(evt: MouseEvent){
+        val cellCoords = cellCoordinates(evt)
+        setHighlightedCell(if (cellCoords == null) null else cellCoords)
+    }
+
 }
 
 class MovesHistory : View() {
