@@ -41,6 +41,8 @@ class ChessBoard : View() {
 
     var turnComponent: Label? = null
     var currentHighlighter: Label? = null
+    var dragStartHighlighter: Label? = null
+    var dragStartCoordinates: Pair<Int, Int>? = null
 
     fun pieceToImage(piece: ChessPiece?) : String? {
         return when (piece) {
@@ -85,6 +87,9 @@ class ChessBoard : View() {
         }
 
         addEventFilter(MouseEvent.MOUSE_MOVED, this@ChessBoard::highlightHoveredCell)
+        addEventFilter(MouseEvent.MOUSE_DRAGGED, this@ChessBoard::highlightHoveredCell)
+        addEventFilter(MouseEvent.MOUSE_PRESSED, this@ChessBoard::startPieceDragging)
+        addEventFilter(MouseEvent.MOUSE_RELEASED, this@ChessBoard::endPieceDragging)
 
         val boardGroup = group {}
 
@@ -186,8 +191,24 @@ class ChessBoard : View() {
     fun startPieceDragging(evt: MouseEvent){
         val cellCoords = cellCoordinates(evt)
         if (cellCoords != null){
-            //TODO start dragging if not already started
+            dragStartCoordinates = cellCoords
+            dragStartHighlighter = label {
+                layoutX = cellsSize * (0.5 + cellCoords.first)
+                layoutY = cellsSize * (0.5 + cellCoords.second)
+                prefWidth = cellsSize
+                prefHeight = cellsSize
+                style {
+                    backgroundColor += c("#00F")
+                    opacity = 0.94
+                }
+            }
         }
+    }
+
+    fun endPieceDragging(evt: MouseEvent) {
+        val cellCoords = cellCoordinates(evt)
+        if (dragStartHighlighter != null) root.children.remove(dragStartHighlighter)
+        setHighlightedCell(cellCoords)
     }
 
     fun updatePlayerTurn() {
@@ -209,12 +230,16 @@ class ChessBoard : View() {
         val cellCoords = cellCoordinates(evt)
         val highlightedStatus = if (cellCoords == null) null else cellCoords
 
+        setHighlightedCell(highlightedStatus)
+    }
+
+    private fun setHighlightedCell(cellToHighlight: Pair<Int, Int>?) {
         if (currentHighlighter != null) root.children.remove(currentHighlighter)
 
-        if (highlightedStatus != null){
+        if (cellToHighlight != null) {
             currentHighlighter = label {
-                layoutX = cellsSize * (0.5 + highlightedStatus.first)
-                layoutY = cellsSize * (0.5 + highlightedStatus.second)
+                layoutX = cellsSize * (0.5 + cellToHighlight.first)
+                layoutY = cellsSize * (0.5 + cellToHighlight.second)
                 prefWidth = cellsSize
                 prefHeight = cellsSize
                 style {
