@@ -2,9 +2,11 @@ package com.loloof64.chess_pgn_experiment
 
 import com.loloof64.chess_core.pieces.*
 import com.loloof64.chess_core.game.Game
+import javafx.scene.Cursor
 import javafx.scene.Group
 import javafx.scene.control.Hyperlink
 import javafx.scene.control.Label
+import javafx.scene.image.ImageView
 import javafx.scene.input.MouseEvent
 import javafx.scene.text.Font
 import javafx.scene.text.Text
@@ -34,6 +36,7 @@ class MainView : View() {
 class ChessBoard : View() {
     val cellsSize = 50.0
     val picturesSize = 75.0
+    val cursorOffset = cellsSize * 0.50
     val picturesScale = cellsSize / picturesSize
 
     val piecesGroup = Group()
@@ -43,6 +46,7 @@ class ChessBoard : View() {
     var currentHighlighter: Label? = null
     var dragStartHighlighter: Label? = null
     var dragStartCoordinates: Pair<Int, Int>? = null
+    var movedPieceCursor: ImageView? = null
 
     fun pieceToImage(piece: ChessPiece?) : String? {
         return when (piece) {
@@ -87,8 +91,10 @@ class ChessBoard : View() {
         }
 
         addEventFilter(MouseEvent.MOUSE_MOVED, this@ChessBoard::highlightHoveredCell)
+        addEventFilter(MouseEvent.MOUSE_DRAGGED, this@ChessBoard::updatePieceCursorLocation)
         addEventFilter(MouseEvent.MOUSE_DRAGGED, this@ChessBoard::highlightHoveredCell)
         addEventFilter(MouseEvent.MOUSE_PRESSED, this@ChessBoard::startPieceDragging)
+        addEventFilter(MouseEvent.MOUSE_PRESSED, this@ChessBoard::updatePieceCursorLocation)
         addEventFilter(MouseEvent.MOUSE_RELEASED, this@ChessBoard::endPieceDragging)
 
         val boardGroup = group {}
@@ -188,9 +194,15 @@ class ChessBoard : View() {
         updatePlayerTurn()
     }
 
+    fun updatePieceCursorLocation(evt: MouseEvent){
+        movedPieceCursor?.layoutX = evt.x - cursorOffset
+        movedPieceCursor?.layoutY = evt.y - cursorOffset
+    }
+
     fun startPieceDragging(evt: MouseEvent){
         val cellCoords = cellCoordinates(evt)
         if (cellCoords != null){
+            // Highlight start cell and records it
             dragStartCoordinates = cellCoords
             dragStartHighlighter = label {
                 layoutX = cellsSize * (0.5 + cellCoords.first)
@@ -202,12 +214,27 @@ class ChessBoard : View() {
                     opacity = 0.94
                 }
             }
+
+
+            //Set up custom cursor
+            root.cursor = Cursor.NONE
+            movedPieceCursor = imageview("chess_bd.png") {
+                scaleX = picturesScale
+                scaleY = picturesScale
+                layoutX = evt.x - cursorOffset
+                layoutY = evt.y - cursorOffset
+            }
         }
     }
 
     fun endPieceDragging(evt: MouseEvent) {
         val cellCoords = cellCoordinates(evt)
         if (dragStartHighlighter != null) root.children.remove(dragStartHighlighter)
+
+        root.children.remove(movedPieceCursor)
+        movedPieceCursor = null
+        root.cursor = Cursor.DEFAULT
+
         setHighlightedCell(cellCoords)
     }
 
