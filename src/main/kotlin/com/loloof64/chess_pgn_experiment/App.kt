@@ -1,7 +1,7 @@
 package com.loloof64.chess_pgn_experiment
 
 import com.loloof64.chess_core.pieces.*
-import com.loloof64.chess_core.game.Game
+import com.loloof64.chess_core.game.ChessGame
 import javafx.animation.KeyFrame
 import javafx.animation.KeyValue
 import javafx.animation.Timeline
@@ -44,7 +44,7 @@ class ChessBoard : View() {
     private val picturesScale = cellsSize / picturesSize
 
     private val piecesGroup = Group()
-    private var game = Game.fenToGame("3r2rk/pbq1np2/1p1ppb1p/8/8/2P2N1P/PP1QBPP1/R4RK1 w - - 0 1")
+    private var game = ChessGame.fenToGame("3r2rk/pbq1np2/1p1ppb1p/8/8/2P2N1P/PP1QBPP1/R4RK1 w - - 0 1")
 
     private var turnComponent: Label? = null
     private var currentHighlighter: Label? = null
@@ -86,9 +86,9 @@ class ChessBoard : View() {
         }
 
         // updating board logic
-        val movedPiece = game.board[startCell.first, startCell.second]
-        game.board[startCell.first, startCell.second] = null
-        game.board[endCell.first, endCell.second] = movedPiece
+        game = game.doMove(startCell, endCell)
+
+        updatePlayerTurn()
     }
 
     override val root = pane {
@@ -273,7 +273,17 @@ class ChessBoard : View() {
     private fun endPieceDragging(evt: MouseEvent) {
         val cellCoords = cellCoordinates(evt)
 
-        if (cellCoords != null && dragStartCoordinates != null){
+        if (dragStartCoordinates != null && cellCoords != null &&
+                game.isValidPseudoLegalMove(dragStartCoordinates!!, cellCoords)){
+            validateDnD(cellCoords)
+        }
+        else {
+            animatePieceBackToItsOriginCell(dragStartCoordinates)
+        }
+    }
+
+    private fun validateDnD(cellCoords: Pair<Int, Int>?) {
+        if (cellCoords != null && dragStartCoordinates != null) {
             movePiece(dragStartCoordinates!!, cellCoords)
             resetDnDStatus(cellCoords)
         }

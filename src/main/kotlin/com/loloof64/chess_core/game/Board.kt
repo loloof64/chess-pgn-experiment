@@ -53,9 +53,6 @@ class ChessBoard(val pieces: Array<Array<ChessPiece?>>) {
     }
 
     operator fun get(rank: Int, file: Int):ChessPiece? = pieces[rank][file]
-    operator fun set(rank: Int, file: Int, value: ChessPiece?) {
-        pieces[rank][file] = value
-    }
 
     fun toFEN():String {
         val builder = StringBuilder()
