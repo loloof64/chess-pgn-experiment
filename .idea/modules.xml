@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/.idea/modules/chess-pgn-experiment.iml" filepath="$PROJECT_DIR$/.idea/modules/chess-pgn-experiment.iml" />
+      <module fileurl="file://$PROJECT_DIR$/chess-pgn-experiment.iml" filepath="$PROJECT_DIR$/chess-pgn-experiment.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/chess-pgn-experiment_main.iml" filepath="$PROJECT_DIR$/.idea/modules/chess-pgn-experiment_main.iml" group="chess-pgn-experiment" />
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/chess-pgn-experiment_test.iml" filepath="$PROJECT_DIR$/.idea/modules/chess-pgn-experiment_test.iml" group="chess-pgn-experiment" />
     </modules>

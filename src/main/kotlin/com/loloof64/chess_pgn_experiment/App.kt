@@ -70,21 +70,25 @@ class ChessBoard : View() {
         }
     }
 
-    fun changePiece(rank: Int, file: Int, newValue: ChessPiece) {
-        val pieceView = piecesGroup.lookup("#$rank$file")
-        if (pieceView != null) {
-            piecesGroup.children.remove(pieceView)
+    private fun movePiece(startCell: Pair<Int, Int>, endCell: Pair<Int, Int>){
+        // removing piece at destination cell
+        val replacedPieceView = piecesGroup.lookup("#${endCell.first}${endCell.second}")
+        if (replacedPieceView != null) {
+            piecesGroup.children.remove(replacedPieceView)
         }
-        val image = pieceToImage(newValue)
-        if (image != null){
-            piecesGroup.add(imageview(image) {
-                id = "$rank$file"
-                scaleX = picturesScale
-                scaleY = picturesScale
-                layoutX = cellsSize*(file.toDouble() + 0.5)
-                layoutY = cellsSize*(7.5 -rank.toDouble())
-            })
+
+        // moving piece
+        val movedPieceView = piecesGroup.lookup("#${startCell.first}${startCell.second}")
+        if (movedPieceView != null) {
+            movedPieceView.id = "${endCell.first}${endCell.second}"
+            movedPieceView.layoutX = cellsSize * (0.25 + endCell.second)
+            movedPieceView.layoutY = cellsSize * (7.25 - endCell.first)
         }
+
+        // updating board logic
+        val movedPiece = game.board[startCell.first, startCell.second]
+        game.board[startCell.first, startCell.second] = null
+        game.board[endCell.first, endCell.second] = movedPiece
     }
 
     override val root = pane {
@@ -180,7 +184,7 @@ class ChessBoard : View() {
         updatePlayerTurn()
     }
 
-    fun cellCoordinates(evt: MouseEvent): Pair<Int, Int>?{
+    private fun cellCoordinates(evt: MouseEvent): Pair<Int, Int>?{
         val startCoordinate = cellsSize * 0.5
         val endCoordinate = cellsSize * 8.5
         val inBoard = evt.x in (startCoordinate..endCoordinate) && evt.y in (startCoordinate..endCoordinate)
@@ -188,7 +192,7 @@ class ChessBoard : View() {
         if (inBoard){
             val cellX = ((evt.x - startCoordinate) / cellsSize).toInt()
             val cellY = 7 - ((evt.y - startCoordinate) / cellsSize).toInt()
-            return Pair(cellX, cellY)
+            return Pair(cellY, cellX)
         }
         else return null
     }
@@ -198,23 +202,23 @@ class ChessBoard : View() {
         updatePlayerTurn()
     }
 
-    fun updatePieceCursorLocation(evt: MouseEvent){
+    private fun updatePieceCursorLocation(evt: MouseEvent){
         movedPieceCursor?.layoutX = evt.x - cursorOffset
         movedPieceCursor?.layoutY = evt.y - cursorOffset
     }
 
-    fun startPieceDragging(evt: MouseEvent){
+    private fun startPieceDragging(evt: MouseEvent){
         val cellCoords = cellCoordinates(evt)
         if (cellCoords != null) {
-            val pieceAtCell = game.board[cellCoords.second, cellCoords.first]
+            val pieceAtCell = game.board[cellCoords.first, cellCoords.second]
             val weCanStartDnd = pieceAtCell != null
 
             if (weCanStartDnd) {
                 // Highlight start cell and records it
                 dragStartCoordinates = cellCoords
                 dragStartHighlighter = label {
-                    layoutX = cellsSize * (0.5 + cellCoords.first)
-                    layoutY = cellsSize * (7.5 - cellCoords.second)
+                    layoutX = cellsSize * (0.5 + cellCoords.second)
+                    layoutY = cellsSize * (7.5 - cellCoords.first)
                     prefWidth = cellsSize
                     prefHeight = cellsSize
                     style {
@@ -236,38 +240,46 @@ class ChessBoard : View() {
         }
     }
 
-    fun endPieceDragging(evt: MouseEvent) {
-        val cellCoords = cellCoordinates(evt)
-        fun resetDnDStatus(){
-            root.children.remove(movedPieceCursor)
-
-            movedPieceCursor = null
-            root.cursor = Cursor.DEFAULT
-
-            setHighlightedCell(cellCoords)
-            if (dragStartHighlighter != null) root.children.remove(dragStartHighlighter)
-        }
-
+    private fun animatePieceBackToItsOriginCell(originCellCoords: Pair<Int, Int>?){
         if (dragStartCoordinates != null) {
 
             // cancel animation
-            val animationEndX = cellsSize*(dragStartCoordinates?.first?.toDouble() ?:0.0 + 0.5)
-            val animationEndY = cellsSize*(7.5 - (dragStartCoordinates?.second?.toDouble() ?:0.0))
+            val animationEndX = cellsSize*(dragStartCoordinates?.second?.toDouble() ?:0.0 + 0.5)
+            val animationEndY = cellsSize*(7.5 - (dragStartCoordinates?.first?.toDouble() ?:0.0))
             val timeline = Timeline()
             timeline.keyFrames.add(
                     KeyFrame(Duration.millis(200.0),
-                        KeyValue(movedPieceCursor?.layoutXProperty(), animationEndX),
-                        KeyValue(movedPieceCursor?.layoutYProperty(), animationEndY))
+                            KeyValue(movedPieceCursor?.layoutXProperty(), animationEndX),
+                            KeyValue(movedPieceCursor?.layoutYProperty(), animationEndY))
             )
             timeline.play()
             timeline.setOnFinished {
-                resetDnDStatus()
+                resetDnDStatus(originCellCoords)
             }
         }
-
     }
 
-    fun updatePlayerTurn() {
+    private fun resetDnDStatus(originCellCoords: Pair<Int, Int>?){
+        root.children.remove(movedPieceCursor)
+
+        movedPieceCursor = null
+        root.cursor = Cursor.DEFAULT
+
+        setHighlightedCell(originCellCoords)
+        if (dragStartHighlighter != null) root.children.remove(dragStartHighlighter)
+        dragStartCoordinates = null
+    }
+
+    private fun endPieceDragging(evt: MouseEvent) {
+        val cellCoords = cellCoordinates(evt)
+
+        if (cellCoords != null && dragStartCoordinates != null){
+            movePiece(dragStartCoordinates!!, cellCoords)
+            resetDnDStatus(cellCoords)
+        }
+    }
+
+    private fun updatePlayerTurn() {
         if (turnComponent != null) root.children.remove(turnComponent)
 
         turnComponent = label {
@@ -282,7 +294,7 @@ class ChessBoard : View() {
         }
     }
 
-    fun highlightHoveredCell(evt: MouseEvent){
+    private fun highlightHoveredCell(evt: MouseEvent){
         val cellCoords = cellCoordinates(evt)
         val highlightedStatus = if (cellCoords == null) null else cellCoords
 
@@ -294,8 +306,8 @@ class ChessBoard : View() {
 
         if (cellToHighlight != null) {
             currentHighlighter = label {
-                layoutX = cellsSize * (0.5 + cellToHighlight.first)
-                layoutY = cellsSize * (7.5 -  cellToHighlight.second)
+                layoutX = cellsSize * (0.5 + cellToHighlight.second)
+                layoutY = cellsSize * (7.5 -  cellToHighlight.first)
                 prefWidth = cellsSize
                 prefHeight = cellsSize
                 style {
