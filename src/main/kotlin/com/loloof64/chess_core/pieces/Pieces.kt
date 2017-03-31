@@ -1,7 +1,6 @@
 package com.loloof64.chess_core.pieces
 
-import com.loloof64.chess_core.game.ChessBoard
-import com.loloof64.chess_core.game.ChessGame
+import com.loloof64.chess_core.game.*
 
 abstract class ChessPiece(open val whitePlayer: Boolean) {
     companion object {
@@ -72,9 +71,12 @@ data class Pawn(override val whitePlayer: Boolean) : ChessPiece(whitePlayer){
                 && game.board[endSquare.first, endSquare.second] != null
                 && game.board[endSquare.first, endSquare.second]!!.whitePlayer)
 
-        return isValidTwoCellsJumpAsWhite || isValidTwoCellsJumpAsBlack
+        val ownerPlayer = whitePlayer == game.info.whiteTurn
+        val followValidLine = isValidTwoCellsJumpAsWhite || isValidTwoCellsJumpAsBlack
                 || isValidForwardMoveAsWhite || isValidForwardMoveAsBlack
                 || isValidCaptureMoveAsWhite || isValidCaptureMoveAsBlack
+
+        return followValidLine && ownerPlayer
     }
 
     override fun toFEN(): Char {
@@ -95,7 +97,9 @@ data class Knight(override val whitePlayer: Boolean) : ChessPiece(whitePlayer){
         val endSquarePieceIsEnemy = pieceAtEndCell?.whitePlayer != whitePlayer
         val followValidLine = (absDeltaFile == 1 && absDeltaRank == 2) || (absDeltaFile == 2 && absDeltaRank == 1)
 
-        return followValidLine && endSquarePieceIsEnemy
+        val ownerPlayer = whitePlayer == game.info.whiteTurn
+
+        return followValidLine && endSquarePieceIsEnemy && ownerPlayer
     }
 
     override fun toFEN(): Char {
@@ -114,9 +118,11 @@ data class Bishop(override val whitePlayer: Boolean) : ChessPiece(whitePlayer){
         val endSquarePieceIsEnemy = pieceAtEndCell?.whitePlayer != whitePlayer
         val followValidLine = absDeltaFile == absDeltaRank
 
+        val ownerPlayer = whitePlayer == game.info.whiteTurn
+
         if (thereIsBlockadeBetweenStartAndTarget(deltaFile, deltaRank, game, startSquare)) return false
 
-        return followValidLine && endSquarePieceIsEnemy
+        return followValidLine && endSquarePieceIsEnemy && ownerPlayer
     }
 
     override fun toFEN(): Char {
@@ -137,7 +143,9 @@ data class Rook(override val whitePlayer: Boolean) : ChessPiece(whitePlayer){
 
         if (thereIsBlockadeBetweenStartAndTarget(deltaFile, deltaRank, game, startSquare)) return false
 
-        return followValidLine && endSquarePieceIsEnemy
+        val ownerPlayer = whitePlayer == game.info.whiteTurn
+
+        return followValidLine && endSquarePieceIsEnemy && ownerPlayer
     }
 
     override fun toFEN(): Char {
@@ -159,7 +167,9 @@ data class Queen(override val whitePlayer: Boolean) : ChessPiece(whitePlayer){
 
         if (thereIsBlockadeBetweenStartAndTarget(deltaFile, deltaRank, game, startSquare)) return false
 
-        return followValidLine && endSquarePieceIsEnemy
+        val ownerPlayer = whitePlayer == game.info.whiteTurn
+
+        return followValidLine && endSquarePieceIsEnemy && ownerPlayer
     }
 
     override fun toFEN(): Char {
@@ -179,6 +189,7 @@ data class King(override val whitePlayer: Boolean) : ChessPiece(whitePlayer){
         val endPieceIsEnemy = pieceAtEndCell?.whitePlayer != whitePlayer
 
         val isLegalKingSideCastleAsWhite = game.info.whiteTurn
+                && WhiteKingSideCastle in game.info.castles
                 && deltaFile == 2 && deltaRank == 0
                 && startSquare == Pair(ChessBoard.RANK_1, ChessBoard.FILE_E)
                 && game.board[ChessBoard.RANK_1, ChessBoard.FILE_H] == Rook(whitePlayer = true)
@@ -186,6 +197,7 @@ data class King(override val whitePlayer: Boolean) : ChessPiece(whitePlayer){
                 && game.board[ChessBoard.RANK_1, ChessBoard.FILE_G] == null
 
         val isLegalQueenSideCastleAsWhite = game.info.whiteTurn
+                && WhiteQueenSideCastle in game.info.castles
                 && deltaFile == -2 && deltaRank == 0
                 && startSquare == Pair(ChessBoard.RANK_1, ChessBoard.FILE_E)
                 && game.board[ChessBoard.RANK_1, ChessBoard.FILE_A] == Rook(whitePlayer = true)
@@ -194,6 +206,7 @@ data class King(override val whitePlayer: Boolean) : ChessPiece(whitePlayer){
                 && game.board[ChessBoard.RANK_1, ChessBoard.FILE_B] == null
 
         val isLegalKingSideCastleAsBlack = !game.info.whiteTurn
+                && BlackKingSideCastle in game.info.castles
                 && deltaFile == 2 && deltaRank == 0
                 && startSquare == Pair(ChessBoard.RANK_8, ChessBoard.FILE_E)
                 && game.board[ChessBoard.RANK_8, ChessBoard.FILE_H] == Rook(whitePlayer = false)
@@ -201,6 +214,7 @@ data class King(override val whitePlayer: Boolean) : ChessPiece(whitePlayer){
                 && game.board[ChessBoard.RANK_8, ChessBoard.FILE_G] == null
 
         val isLegalQueenSideCastleAsBlack = !game.info.whiteTurn
+                && BlackQueenSideCastle in game.info.castles
                 && deltaFile == -2 && deltaRank == 0
                 && startSquare == Pair(ChessBoard.RANK_8, ChessBoard.FILE_E)
                 && game.board[ChessBoard.RANK_8, ChessBoard.FILE_A] == Rook(whitePlayer = false)
@@ -211,7 +225,9 @@ data class King(override val whitePlayer: Boolean) : ChessPiece(whitePlayer){
         val isLegalCastle = isLegalKingSideCastleAsWhite || isLegalQueenSideCastleAsWhite
                             || isLegalKingSideCastleAsBlack || isLegalQueenSideCastleAsBlack
 
-        return (followValidLine && endPieceIsEnemy) || isLegalCastle
+        val ownerPlayer = whitePlayer == game.info.whiteTurn
+
+        return ((followValidLine && endPieceIsEnemy) || isLegalCastle) && ownerPlayer
     }
 
     override fun toFEN(): Char {

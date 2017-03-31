@@ -28,6 +28,7 @@ class ChessGame(val board: ChessBoard, val info: GameInfo){
         val pieceAtStartSquare = board[startSquare.first, startSquare.second] ?: return false
 
         return info.whiteTurn
+                && WhiteKingSideCastle in info.castles
                 && pieceAtStartSquare == King(whitePlayer = true)
                 && board[ChessBoard.RANK_1, ChessBoard.FILE_H] == Rook(whitePlayer = true)
                 && startSquare == Pair(ChessBoard.RANK_1, ChessBoard.FILE_E)
@@ -41,6 +42,7 @@ class ChessGame(val board: ChessBoard, val info: GameInfo){
         val pieceAtStartSquare = board[startSquare.first, startSquare.second] ?: return false
 
         return info.whiteTurn
+                && WhiteQueenSideCastle in info.castles
                 && pieceAtStartSquare == King(whitePlayer = true)
                 && board[ChessBoard.RANK_1, ChessBoard.FILE_A] == Rook(whitePlayer = true)
                 && startSquare == Pair(ChessBoard.RANK_1, ChessBoard.FILE_E)
@@ -55,6 +57,7 @@ class ChessGame(val board: ChessBoard, val info: GameInfo){
         val pieceAtStartSquare = board[startSquare.first, startSquare.second] ?: return false
 
         return !info.whiteTurn
+                && BlackKingSideCastle in info.castles
                 && pieceAtStartSquare == King(whitePlayer = false)
                 && board[ChessBoard.RANK_8, ChessBoard.FILE_H] == Rook(whitePlayer = false)
                 && startSquare == Pair(ChessBoard.RANK_8, ChessBoard.FILE_E)
@@ -68,6 +71,7 @@ class ChessGame(val board: ChessBoard, val info: GameInfo){
         val pieceAtStartSquare = board[startSquare.first, startSquare.second] ?: return false
 
         return !info.whiteTurn
+                && BlackQueenSideCastle in info.castles
                 && pieceAtStartSquare == King(whitePlayer = false)
                 && board[ChessBoard.RANK_8, ChessBoard.FILE_A] == Rook(whitePlayer = false)
                 && startSquare == Pair(ChessBoard.RANK_8, ChessBoard.FILE_E)
@@ -82,6 +86,8 @@ class ChessGame(val board: ChessBoard, val info: GameInfo){
         if (!pieceAtStartSquare.isValidPseudoLegalMove(this, startSquare, endSquare)) throw IllegalMoveException()
 
         val modifiedBoardArray = copyBoardIntoArray()
+        val newMoveNumber = if (info.whiteTurn) info.moveNumber+1 else info.moveNumber
+        var modifiedGameInfo = info.copy(whiteTurn = !info.whiteTurn, moveNumber = newMoveNumber)
 
         if (isLegalWhiteKingSideCastle(startSquare, endSquare)) {
             val pathEmpty = board[ChessBoard.RANK_1, ChessBoard.FILE_F] == null
@@ -94,6 +100,11 @@ class ChessGame(val board: ChessBoard, val info: GameInfo){
                 // update rook
                 modifiedBoardArray[ChessBoard.RANK_1][ChessBoard.FILE_H] = null
                 modifiedBoardArray[ChessBoard.RANK_1][ChessBoard.FILE_F] = Rook(whitePlayer = true)
+
+                // update game info
+                val newCastlesRight = mutableListOf(*info.castles.toTypedArray())
+                newCastlesRight.remove(WhiteKingSideCastle)
+                modifiedGameInfo = modifiedGameInfo.copy(castles = newCastlesRight)
             }
             else throw IllegalMoveException()
         } else if (isLegalWhiteQueenSideCastle(startSquare, endSquare)) {
@@ -108,6 +119,11 @@ class ChessGame(val board: ChessBoard, val info: GameInfo){
                 // update rook
                 modifiedBoardArray[ChessBoard.RANK_1][ChessBoard.FILE_A] = null
                 modifiedBoardArray[ChessBoard.RANK_1][ChessBoard.FILE_D] = Rook(whitePlayer = true)
+
+                // update game info
+                val newCastlesRight = mutableListOf(*info.castles.toTypedArray())
+                newCastlesRight.remove(WhiteQueenSideCastle)
+                modifiedGameInfo = modifiedGameInfo.copy(castles = newCastlesRight)
             }
             else throw IllegalMoveException()
         } else if (isLegalBlackKingSideCastle(startSquare, endSquare)) {
@@ -121,6 +137,11 @@ class ChessGame(val board: ChessBoard, val info: GameInfo){
                 // update rook
                 modifiedBoardArray[ChessBoard.RANK_8][ChessBoard.FILE_H] = null
                 modifiedBoardArray[ChessBoard.RANK_8][ChessBoard.FILE_F] = Rook(whitePlayer = false)
+
+                // update game info
+                val newCastlesRight = mutableListOf(*info.castles.toTypedArray())
+                newCastlesRight.remove(BlackKingSideCastle)
+                modifiedGameInfo = modifiedGameInfo.copy(castles = newCastlesRight)
             }
             else throw IllegalMoveException()
         } else if (isLegalBlackKingSideCastle(startSquare, endSquare)) {
@@ -135,17 +156,53 @@ class ChessGame(val board: ChessBoard, val info: GameInfo){
                 // update rook
                 modifiedBoardArray[ChessBoard.RANK_8][ChessBoard.FILE_A] = null
                 modifiedBoardArray[ChessBoard.RANK_8][ChessBoard.FILE_D] = Rook(whitePlayer = false)
+
+                // update game info
+                val newCastlesRight = mutableListOf(*info.castles.toTypedArray())
+                newCastlesRight.remove(BlackQueenSideCastle)
+                modifiedGameInfo = modifiedGameInfo.copy(castles = newCastlesRight)
             }
             else throw IllegalMoveException()
         } else { // regular move
             modifiedBoardArray[startSquare.first][startSquare.second] = null
             modifiedBoardArray[endSquare.first][endSquare.second] = pieceAtStartSquare
+
+            if (pieceAtStartSquare == King(whitePlayer = true)) {
+                // update game info
+                val newCastlesRight = mutableListOf(*info.castles.toTypedArray())
+                newCastlesRight.remove(WhiteKingSideCastle)
+                newCastlesRight.remove(WhiteQueenSideCastle)
+                modifiedGameInfo = modifiedGameInfo.copy(castles = newCastlesRight)
+            } else if (pieceAtStartSquare == King(whitePlayer = false)) {
+                // update game info
+                val newCastlesRight = mutableListOf(*info.castles.toTypedArray())
+                newCastlesRight.remove(BlackKingSideCastle)
+                newCastlesRight.remove(BlackQueenSideCastle)
+                modifiedGameInfo = modifiedGameInfo.copy(castles = newCastlesRight)
+            } else if (pieceAtStartSquare == Rook(whitePlayer = true)
+                    && startSquare == Pair(ChessBoard.RANK_1, ChessBoard.FILE_H)) {
+                val newCastlesRight = mutableListOf(*info.castles.toTypedArray())
+                newCastlesRight.remove(WhiteKingSideCastle)
+                modifiedGameInfo = modifiedGameInfo.copy(castles = newCastlesRight)
+            } else if (pieceAtStartSquare == Rook(whitePlayer = true)
+                    && startSquare == Pair(ChessBoard.RANK_1, ChessBoard.FILE_A)) {
+                val newCastlesRight = mutableListOf(*info.castles.toTypedArray())
+                newCastlesRight.remove(WhiteQueenSideCastle)
+                modifiedGameInfo = modifiedGameInfo.copy(castles = newCastlesRight)
+            } else if (pieceAtStartSquare == Rook(whitePlayer = false)
+                    && startSquare == Pair(ChessBoard.RANK_8, ChessBoard.FILE_H)) {
+                val newCastlesRight = mutableListOf(*info.castles.toTypedArray())
+                newCastlesRight.remove(BlackKingSideCastle)
+                modifiedGameInfo = modifiedGameInfo.copy(castles = newCastlesRight)
+            } else if (pieceAtStartSquare == Rook(whitePlayer = false)
+                    && startSquare == Pair(ChessBoard.RANK_8, ChessBoard.FILE_A)) {
+                val newCastlesRight = mutableListOf(*info.castles.toTypedArray())
+                newCastlesRight.remove(BlackQueenSideCastle)
+                modifiedGameInfo = modifiedGameInfo.copy(castles = newCastlesRight)
+            }
         }
 
         val modifiedBoard = ChessBoard(modifiedBoardArray)
-
-        val newMoveNumber = if (info.whiteTurn) info.moveNumber+1 else info.moveNumber
-        val modifiedGameInfo = info.copy(whiteTurn = !info.whiteTurn, moveNumber = newMoveNumber)
 
         return ChessGame(modifiedBoard, modifiedGameInfo)
     }

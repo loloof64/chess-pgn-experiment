@@ -85,10 +85,6 @@ class ChessBoard : View() {
             movedPieceView.layoutY = cellsSize * (7.25 - endCell.first)
         }
 
-        /////////////////////////////
-        println(game.isLegalBlackKingSideCastle(startCell, endCell))
-        /////////////////////////////
-
         // Special moves addition
         if (game.isLegalWhiteKingSideCastle(startCell, endCell)) {
             val movedRookView = piecesGroup.lookup("#07")
