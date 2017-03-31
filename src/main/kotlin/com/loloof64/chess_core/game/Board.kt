@@ -90,3 +90,10 @@ class ChessBoard(val pieces: Array<Array<ChessPiece?>>) {
         return toFEN()
     }
 }
+
+data class Coordinates(val rank: Int, val file: Int){
+    init {
+        require(rank in 0..7)
+        require(file in 0..7)
+    }
+}
