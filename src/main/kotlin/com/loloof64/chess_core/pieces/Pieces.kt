@@ -178,7 +178,40 @@ data class King(override val whitePlayer: Boolean) : ChessPiece(whitePlayer){
         val followValidLine = absDeltaFile == 1 || absDeltaRank == 1
         val endPieceIsEnemy = pieceAtEndCell?.whitePlayer != whitePlayer
 
-        return followValidLine && endPieceIsEnemy
+        val isLegalKingSideCastleAsWhite = game.info.whiteTurn
+                && deltaFile == 2 && deltaRank == 0
+                && startSquare == Pair(ChessBoard.RANK_1, ChessBoard.FILE_E)
+                && game.board[ChessBoard.RANK_1, ChessBoard.FILE_H] == Rook(whitePlayer = true)
+                && game.board[ChessBoard.RANK_1, ChessBoard.FILE_F] == null
+                && game.board[ChessBoard.RANK_1, ChessBoard.FILE_G] == null
+
+        val isLegalQueenSideCastleAsWhite = game.info.whiteTurn
+                && deltaFile == -2 && deltaRank == 0
+                && startSquare == Pair(ChessBoard.RANK_1, ChessBoard.FILE_E)
+                && game.board[ChessBoard.RANK_1, ChessBoard.FILE_A] == Rook(whitePlayer = true)
+                && game.board[ChessBoard.RANK_1, ChessBoard.FILE_D] == null
+                && game.board[ChessBoard.RANK_1, ChessBoard.FILE_C] == null
+                && game.board[ChessBoard.RANK_1, ChessBoard.FILE_B] == null
+
+        val isLegalKingSideCastleAsBlack = !game.info.whiteTurn
+                && deltaFile == 2 && deltaRank == 0
+                && startSquare == Pair(ChessBoard.RANK_8, ChessBoard.FILE_E)
+                && game.board[ChessBoard.RANK_8, ChessBoard.FILE_H] == Rook(whitePlayer = false)
+                && game.board[ChessBoard.RANK_8, ChessBoard.FILE_F] == null
+                && game.board[ChessBoard.RANK_8, ChessBoard.FILE_G] == null
+
+        val isLegalQueenSideCastleAsBlack = !game.info.whiteTurn
+                && deltaFile == -2 && deltaRank == 0
+                && startSquare == Pair(ChessBoard.RANK_8, ChessBoard.FILE_E)
+                && game.board[ChessBoard.RANK_8, ChessBoard.FILE_A] == Rook(whitePlayer = false)
+                && game.board[ChessBoard.RANK_8, ChessBoard.FILE_D] == null
+                && game.board[ChessBoard.RANK_8, ChessBoard.FILE_C] == null
+                && game.board[ChessBoard.RANK_8, ChessBoard.FILE_B] == null
+
+        val isLegalCastle = isLegalKingSideCastleAsWhite || isLegalQueenSideCastleAsWhite
+                            || isLegalKingSideCastleAsBlack || isLegalQueenSideCastleAsBlack
+
+        return (followValidLine && endPieceIsEnemy) || isLegalCastle
     }
 
     override fun toFEN(): Char {

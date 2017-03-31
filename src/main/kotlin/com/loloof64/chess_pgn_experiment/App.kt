@@ -44,7 +44,7 @@ class ChessBoard : View() {
     private val picturesScale = cellsSize / picturesSize
 
     private val piecesGroup = Group()
-    private var game = ChessGame.fenToGame("3r2rk/pbq1np2/1p1ppb1p/8/8/2P2N1P/PP1QBPP1/R4RK1 w - - 0 1")
+    private var game = ChessGame.INITIAL_POSITION
 
     private var turnComponent: Label? = null
     private var currentHighlighter: Label? = null
@@ -83,6 +83,33 @@ class ChessBoard : View() {
             movedPieceView.id = "${endCell.first}${endCell.second}"
             movedPieceView.layoutX = cellsSize * (0.25 + endCell.second)
             movedPieceView.layoutY = cellsSize * (7.25 - endCell.first)
+        }
+
+        /////////////////////////////
+        println(game.isLegalBlackKingSideCastle(startCell, endCell))
+        /////////////////////////////
+
+        // Special moves addition
+        if (game.isLegalWhiteKingSideCastle(startCell, endCell)) {
+            val movedRookView = piecesGroup.lookup("#07")
+            movedRookView.id = "05"
+            movedRookView.layoutX = cellsSize * 5.25
+            movedRookView.layoutY = cellsSize * 7.25
+        } else if (game.isLegalWhiteQueenSideCastle(startCell, endCell)) {
+            val movedRookView = piecesGroup.lookup("#00")
+            movedRookView.id = "03"
+            movedRookView.layoutX = cellsSize * 3.25
+            movedRookView.layoutY = cellsSize * 7.25
+        } else if (game.isLegalBlackKingSideCastle(startCell, endCell)) {
+            val movedRookView = piecesGroup.lookup("#77")
+            movedRookView.id = "75"
+            movedRookView.layoutX = cellsSize * 5.25
+            movedRookView.layoutY = cellsSize * 0.25
+        } else if (game.isLegalBlackQueenSideCastle(startCell, endCell)) {
+            val movedRookView = piecesGroup.lookup("#70")
+            movedRookView.id = "73"
+            movedRookView.layoutX = cellsSize * 3.25
+            movedRookView.layoutY = cellsSize * 0.25
         }
 
         // updating board logic

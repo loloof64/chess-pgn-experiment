@@ -1,6 +1,8 @@
 package com.loloof64.chess_core.game
 
 import com.loloof64.chess_core.pieces.ChessPiece
+import com.loloof64.chess_core.pieces.King
+import com.loloof64.chess_core.pieces.Rook
 
 class ChessGame(val board: ChessBoard, val info: GameInfo){
     companion object {
@@ -8,6 +10,8 @@ class ChessGame(val board: ChessBoard, val info: GameInfo){
             return ChessGame(board = ChessBoard.fenToChessBoard(fen),
                     info = GameInfo.fenToGameInfo(fen))
         }
+
+        val INITIAL_POSITION = ChessGame.fenToGame("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1")
     }
 
    fun toFEN(): String = "${board.toFEN()} ${info.toFEN()}"
@@ -19,13 +23,125 @@ class ChessGame(val board: ChessBoard, val info: GameInfo){
        return pieceAtStartSquare.isValidPseudoLegalMove(this, startSquare, endSquare)
    }
 
+    fun isLegalWhiteKingSideCastle(startSquare: Pair<Int, Int>,
+                                   endSquare: Pair<Int, Int>): Boolean {
+        val pieceAtStartSquare = board[startSquare.first, startSquare.second] ?: return false
+
+        return info.whiteTurn
+                && pieceAtStartSquare == King(whitePlayer = true)
+                && board[ChessBoard.RANK_1, ChessBoard.FILE_H] == Rook(whitePlayer = true)
+                && startSquare == Pair(ChessBoard.RANK_1, ChessBoard.FILE_E)
+                && endSquare == Pair(ChessBoard.RANK_1, ChessBoard.FILE_G)
+                && board[ChessBoard.RANK_1, ChessBoard.FILE_F] == null
+                && board[ChessBoard.RANK_1, ChessBoard.FILE_G] == null
+    }
+
+    fun isLegalWhiteQueenSideCastle(startSquare: Pair<Int, Int>,
+                                   endSquare: Pair<Int, Int>): Boolean {
+        val pieceAtStartSquare = board[startSquare.first, startSquare.second] ?: return false
+
+        return info.whiteTurn
+                && pieceAtStartSquare == King(whitePlayer = true)
+                && board[ChessBoard.RANK_1, ChessBoard.FILE_A] == Rook(whitePlayer = true)
+                && startSquare == Pair(ChessBoard.RANK_1, ChessBoard.FILE_E)
+                && endSquare == Pair(ChessBoard.RANK_1, ChessBoard.FILE_C)
+                && board[ChessBoard.RANK_1, ChessBoard.FILE_D] == null
+                && board[ChessBoard.RANK_1, ChessBoard.FILE_C] == null
+                && board[ChessBoard.RANK_1, ChessBoard.FILE_B] == null
+    }
+
+    fun isLegalBlackKingSideCastle(startSquare: Pair<Int, Int>,
+                                   endSquare: Pair<Int, Int>): Boolean {
+        val pieceAtStartSquare = board[startSquare.first, startSquare.second] ?: return false
+
+        return !info.whiteTurn
+                && pieceAtStartSquare == King(whitePlayer = false)
+                && board[ChessBoard.RANK_8, ChessBoard.FILE_H] == Rook(whitePlayer = false)
+                && startSquare == Pair(ChessBoard.RANK_8, ChessBoard.FILE_E)
+                && endSquare == Pair(ChessBoard.RANK_8, ChessBoard.FILE_G)
+                && board[ChessBoard.RANK_8, ChessBoard.FILE_F] == null
+                && board[ChessBoard.RANK_8, ChessBoard.FILE_G] == null
+    }
+
+    fun isLegalBlackQueenSideCastle(startSquare: Pair<Int, Int>,
+                                    endSquare: Pair<Int, Int>): Boolean {
+        val pieceAtStartSquare = board[startSquare.first, startSquare.second] ?: return false
+
+        return !info.whiteTurn
+                && pieceAtStartSquare == King(whitePlayer = false)
+                && board[ChessBoard.RANK_8, ChessBoard.FILE_A] == Rook(whitePlayer = false)
+                && startSquare == Pair(ChessBoard.RANK_8, ChessBoard.FILE_E)
+                && endSquare == Pair(ChessBoard.RANK_8, ChessBoard.FILE_C)
+                && board[ChessBoard.RANK_8, ChessBoard.FILE_D] == null
+                && board[ChessBoard.RANK_8, ChessBoard.FILE_C] == null
+                && board[ChessBoard.RANK_8, ChessBoard.FILE_B] == null
+    }
+
     fun doMove(startSquare: Pair<Int, Int>, endSquare: Pair<Int, Int>): ChessGame {
         val pieceAtStartSquare = board[startSquare.first, startSquare.second] ?: throw NoPieceAtStartCellException()
         if (!pieceAtStartSquare.isValidPseudoLegalMove(this, startSquare, endSquare)) throw IllegalMoveException()
 
         val modifiedBoardArray = copyBoardIntoArray()
-        modifiedBoardArray[startSquare.first][startSquare.second] = null
-        modifiedBoardArray[endSquare.first][endSquare.second] = pieceAtStartSquare
+
+        if (isLegalWhiteKingSideCastle(startSquare, endSquare)) {
+            val pathEmpty = board[ChessBoard.RANK_1, ChessBoard.FILE_F] == null
+                            && board[ChessBoard.RANK_1, ChessBoard.FILE_G] == null
+            if (pathEmpty){
+                // update king
+                modifiedBoardArray[startSquare.first][startSquare.second] = null
+                modifiedBoardArray[endSquare.first][endSquare.second] = pieceAtStartSquare
+
+                // update rook
+                modifiedBoardArray[ChessBoard.RANK_1][ChessBoard.FILE_H] = null
+                modifiedBoardArray[ChessBoard.RANK_1][ChessBoard.FILE_F] = Rook(whitePlayer = true)
+            }
+            else throw IllegalMoveException()
+        } else if (isLegalWhiteQueenSideCastle(startSquare, endSquare)) {
+            val pathEmpty = board[ChessBoard.RANK_1, ChessBoard.FILE_D] == null
+                    && board[ChessBoard.RANK_1, ChessBoard.FILE_C] == null
+                    && board[ChessBoard.RANK_1, ChessBoard.FILE_B] == null
+            if (pathEmpty){
+                // update king
+                modifiedBoardArray[startSquare.first][startSquare.second] = null
+                modifiedBoardArray[endSquare.first][endSquare.second] = pieceAtStartSquare
+
+                // update rook
+                modifiedBoardArray[ChessBoard.RANK_1][ChessBoard.FILE_A] = null
+                modifiedBoardArray[ChessBoard.RANK_1][ChessBoard.FILE_D] = Rook(whitePlayer = true)
+            }
+            else throw IllegalMoveException()
+        } else if (isLegalBlackKingSideCastle(startSquare, endSquare)) {
+            val pathEmpty = board[ChessBoard.RANK_8, ChessBoard.FILE_F] == null
+                    && board[ChessBoard.RANK_8, ChessBoard.FILE_G] == null
+            if (pathEmpty){
+                // update king
+                modifiedBoardArray[startSquare.first][startSquare.second] = null
+                modifiedBoardArray[endSquare.first][endSquare.second] = pieceAtStartSquare
+
+                // update rook
+                modifiedBoardArray[ChessBoard.RANK_8][ChessBoard.FILE_H] = null
+                modifiedBoardArray[ChessBoard.RANK_8][ChessBoard.FILE_F] = Rook(whitePlayer = false)
+            }
+            else throw IllegalMoveException()
+        } else if (isLegalBlackKingSideCastle(startSquare, endSquare)) {
+            val pathEmpty = board[ChessBoard.RANK_8, ChessBoard.FILE_D] == null
+                    && board[ChessBoard.RANK_8, ChessBoard.FILE_C] == null
+                    && board[ChessBoard.RANK_8, ChessBoard.FILE_B] == null
+            if (pathEmpty){
+                // update king
+                modifiedBoardArray[startSquare.first][startSquare.second] = null
+                modifiedBoardArray[endSquare.first][endSquare.second] = pieceAtStartSquare
+
+                // update rook
+                modifiedBoardArray[ChessBoard.RANK_8][ChessBoard.FILE_A] = null
+                modifiedBoardArray[ChessBoard.RANK_8][ChessBoard.FILE_D] = Rook(whitePlayer = false)
+            }
+            else throw IllegalMoveException()
+        } else { // regular move
+            modifiedBoardArray[startSquare.first][startSquare.second] = null
+            modifiedBoardArray[endSquare.first][endSquare.second] = pieceAtStartSquare
+        }
+
         val modifiedBoard = ChessBoard(modifiedBoardArray)
 
         val newMoveNumber = if (info.whiteTurn) info.moveNumber+1 else info.moveNumber

@@ -48,8 +48,6 @@ class ChessBoard(val pieces: Array<Array<ChessPiece?>>) {
 
             return ChessBoard(pieces)
         }
-
-        val INITIAL_POSITION = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
     }
 
     operator fun get(rank: Int, file: Int):ChessPiece? = pieces[rank][file]
