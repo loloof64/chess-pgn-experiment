@@ -20,8 +20,8 @@ class ChessGame(val board: ChessBoard, val info: GameInfo){
        return pieceAtStartSquare.isValidPseudoLegalMove(this, startSquare, endSquare)
    }
 
-    fun isLegalWhiteKingSideCastle(startSquare: Coordinates,
-                                   endSquare: Coordinates): Boolean {
+    fun isWhiteKingSideCastle(startSquare: Coordinates,
+                              endSquare: Coordinates): Boolean {
         val pieceAtStartSquare = board[startSquare.rank, startSquare.file] ?: return false
 
         return info.whiteTurn
@@ -34,8 +34,8 @@ class ChessGame(val board: ChessBoard, val info: GameInfo){
                 && board[ChessBoard.RANK_1, ChessBoard.FILE_G] == null
     }
 
-    fun isLegalWhiteQueenSideCastle(startSquare: Coordinates,
-                                   endSquare: Coordinates): Boolean {
+    fun isWhiteQueenSideCastle(startSquare: Coordinates,
+                               endSquare: Coordinates): Boolean {
         val pieceAtStartSquare = board[startSquare.rank, startSquare.file] ?: return false
 
         return info.whiteTurn
@@ -49,8 +49,8 @@ class ChessGame(val board: ChessBoard, val info: GameInfo){
                 && board[ChessBoard.RANK_1, ChessBoard.FILE_B] == null
     }
 
-    fun isLegalBlackKingSideCastle(startSquare: Coordinates,
-                                   endSquare: Coordinates): Boolean {
+    fun isBlackKingSideCastle(startSquare: Coordinates,
+                              endSquare: Coordinates): Boolean {
         val pieceAtStartSquare = board[startSquare.rank, startSquare.file] ?: return false
 
         return !info.whiteTurn
@@ -63,8 +63,8 @@ class ChessGame(val board: ChessBoard, val info: GameInfo){
                 && board[ChessBoard.RANK_8, ChessBoard.FILE_G] == null
     }
 
-    fun isLegalBlackQueenSideCastle(startSquare: Coordinates,
-                                    endSquare: Coordinates): Boolean {
+    fun isBlackQueenSideCastle(startSquare: Coordinates,
+                               endSquare: Coordinates): Boolean {
         val pieceAtStartSquare = board[startSquare.rank, startSquare.file] ?: return false
 
         return !info.whiteTurn
@@ -78,6 +78,19 @@ class ChessGame(val board: ChessBoard, val info: GameInfo){
                 && board[ChessBoard.RANK_8, ChessBoard.FILE_B] == null
     }
 
+    fun isEnPassantMove(startSquare: Coordinates, endSquare: Coordinates): Boolean {
+        val pieceAtStartSquare = board[startSquare.rank, startSquare.file] ?: return false
+        val pieceAtEndSquare = board[endSquare.rank, endSquare.file]
+        val isWhiteEnPassantMove = info.whiteTurn && pieceAtStartSquare == Pawn(whitePlayer = true)
+            && pieceAtEndSquare == null && info.enPassantFile == endSquare.file
+                && startSquare.rank == ChessBoard.RANK_5 && endSquare.rank == ChessBoard.RANK_6
+        val isBlackEnPassantMove = !info.whiteTurn && pieceAtStartSquare == Pawn(whitePlayer = false)
+                && pieceAtEndSquare == null && info.enPassantFile == endSquare.file
+                && startSquare.rank == ChessBoard.RANK_4 && endSquare.rank == ChessBoard.RANK_3
+
+        return isWhiteEnPassantMove || isBlackEnPassantMove
+    }
+
     fun isPromotionMove(startSquare: Coordinates, endSquare: Coordinates): Boolean {
         val pieceAtStartSquare = board[startSquare.rank, startSquare.file] ?: return false
 
@@ -89,6 +102,8 @@ class ChessGame(val board: ChessBoard, val info: GameInfo){
         return promotionAsWhite || promotionAsBlack
     }
 
+
+
     fun doMove(startSquare: Coordinates, endSquare: Coordinates): ChessGame{
         return doMove(startSquare, endSquare, Queen(info.whiteTurn))
     }
@@ -98,16 +113,27 @@ class ChessGame(val board: ChessBoard, val info: GameInfo){
         val pieceAtStartSquare = board[startSquare.rank, startSquare.file] ?: throw NoPieceAtStartCellException()
         if (!pieceAtStartSquare.isValidPseudoLegalMove(this, startSquare, endSquare)) throw IllegalMoveException()
 
+        val deltaFile = endSquare.file - startSquare.file
+        val deltaRank = endSquare.rank - startSquare.rank
+
         val modifiedBoardArray = copyBoardIntoArray()
         val newMoveNumber = if (info.whiteTurn) info.moveNumber+1 else info.moveNumber
         var modifiedGameInfo = info.copy(whiteTurn = !info.whiteTurn, moveNumber = newMoveNumber)
 
-        if (isPromotionMove(startSquare, endSquare)){
+        if (isEnPassantMove(startSquare, endSquare)) {
+            modifiedGameInfo = modifiedGameInfo.copy(enPassantFile = null)
+            modifiedBoardArray[startSquare.rank][startSquare.file] = null
+            modifiedBoardArray[endSquare.rank][endSquare.file] = pieceAtStartSquare
+            modifiedBoardArray[if (info.whiteTurn) (endSquare.rank-1) else (endSquare.rank+1)][endSquare.file] = null
+        }
+        else if (isPromotionMove(startSquare, endSquare)) {
+            modifiedGameInfo = modifiedGameInfo.copy(enPassantFile = null)
             if (promotionPiece.whitePlayer != info.whiteTurn) throw WrongPromotionPieceColor()
             modifiedBoardArray[startSquare.rank][startSquare.file] = null
             modifiedBoardArray[endSquare.rank][endSquare.file] = promotionPiece
         }
-        else if (isLegalWhiteKingSideCastle(startSquare, endSquare)) {
+        else if (isWhiteKingSideCastle(startSquare, endSquare)) {
+            modifiedGameInfo = modifiedGameInfo.copy(enPassantFile = null)
             val pathEmpty = board[ChessBoard.RANK_1, ChessBoard.FILE_F] == null
                             && board[ChessBoard.RANK_1, ChessBoard.FILE_G] == null
             if (pathEmpty){
@@ -125,7 +151,8 @@ class ChessGame(val board: ChessBoard, val info: GameInfo){
                 modifiedGameInfo = modifiedGameInfo.copy(castles = newCastlesRight)
             }
             else throw IllegalMoveException()
-        } else if (isLegalWhiteQueenSideCastle(startSquare, endSquare)) {
+        } else if (isWhiteQueenSideCastle(startSquare, endSquare)) {
+            modifiedGameInfo = modifiedGameInfo.copy(enPassantFile = null)
             val pathEmpty = board[ChessBoard.RANK_1, ChessBoard.FILE_D] == null
                     && board[ChessBoard.RANK_1, ChessBoard.FILE_C] == null
                     && board[ChessBoard.RANK_1, ChessBoard.FILE_B] == null
@@ -144,7 +171,8 @@ class ChessGame(val board: ChessBoard, val info: GameInfo){
                 modifiedGameInfo = modifiedGameInfo.copy(castles = newCastlesRight)
             }
             else throw IllegalMoveException()
-        } else if (isLegalBlackKingSideCastle(startSquare, endSquare)) {
+        } else if (isBlackKingSideCastle(startSquare, endSquare)) {
+            modifiedGameInfo = modifiedGameInfo.copy(enPassantFile = null)
             val pathEmpty = board[ChessBoard.RANK_8, ChessBoard.FILE_F] == null
                     && board[ChessBoard.RANK_8, ChessBoard.FILE_G] == null
             if (pathEmpty){
@@ -162,7 +190,8 @@ class ChessGame(val board: ChessBoard, val info: GameInfo){
                 modifiedGameInfo = modifiedGameInfo.copy(castles = newCastlesRight)
             }
             else throw IllegalMoveException()
-        } else if (isLegalBlackKingSideCastle(startSquare, endSquare)) {
+        } else if (isBlackKingSideCastle(startSquare, endSquare)) {
+            modifiedGameInfo = modifiedGameInfo.copy(enPassantFile = null)
             val pathEmpty = board[ChessBoard.RANK_8, ChessBoard.FILE_D] == null
                     && board[ChessBoard.RANK_8, ChessBoard.FILE_C] == null
                     && board[ChessBoard.RANK_8, ChessBoard.FILE_B] == null
@@ -185,6 +214,16 @@ class ChessGame(val board: ChessBoard, val info: GameInfo){
             modifiedBoardArray[startSquare.rank][startSquare.file] = null
             modifiedBoardArray[endSquare.rank][endSquare.file] = pieceAtStartSquare
 
+            val isPawnTwoCellsJump = (pieceAtStartSquare == Pawn(whitePlayer = true)
+                    && deltaFile == 0 && deltaRank == 2 && startSquare.rank == ChessBoard.RANK_2)
+                    || (pieceAtStartSquare == Pawn(whitePlayer = false)
+                        && deltaFile == 0 && deltaRank == -2 && startSquare.rank == ChessBoard.RANK_7)
+
+            if (isPawnTwoCellsJump) {
+                modifiedGameInfo = modifiedGameInfo.copy(enPassantFile = startSquare.file)
+            } else {
+                modifiedGameInfo = modifiedGameInfo.copy(enPassantFile = null)
+            }
             if (pieceAtStartSquare == King(whitePlayer = true)) {
                 // update game info
                 val newCastlesRight = mutableListOf(*info.castles.toTypedArray())

@@ -109,22 +109,27 @@ class ChessBoard : View() {
         }
 
         // Special moves addition
-        if (game.isLegalWhiteKingSideCastle(startCell, endCell)) {
+        if (game.isEnPassantMove(startCell, endCell)) {
+            val capturedPawnView = piecesGroup.lookup(
+                    "#${if (game.info.whiteTurn) (endCell.rank - 1) else (endCell.rank + 1)}${endCell.file}")
+            piecesGroup.children.remove(capturedPawnView)
+        }
+        else if (game.isWhiteKingSideCastle(startCell, endCell)) {
             val movedRookView = piecesGroup.lookup("#07")
             movedRookView.id = "05"
             movedRookView.layoutX = cellsSize * 5.25
             movedRookView.layoutY = cellsSize * 7.25
-        } else if (game.isLegalWhiteQueenSideCastle(startCell, endCell)) {
+        } else if (game.isWhiteQueenSideCastle(startCell, endCell)) {
             val movedRookView = piecesGroup.lookup("#00")
             movedRookView.id = "03"
             movedRookView.layoutX = cellsSize * 3.25
             movedRookView.layoutY = cellsSize * 7.25
-        } else if (game.isLegalBlackKingSideCastle(startCell, endCell)) {
+        } else if (game.isBlackKingSideCastle(startCell, endCell)) {
             val movedRookView = piecesGroup.lookup("#77")
             movedRookView.id = "75"
             movedRookView.layoutX = cellsSize * 5.25
             movedRookView.layoutY = cellsSize * 0.25
-        } else if (game.isLegalBlackQueenSideCastle(startCell, endCell)) {
+        } else if (game.isBlackQueenSideCastle(startCell, endCell)) {
             val movedRookView = piecesGroup.lookup("#70")
             movedRookView.id = "73"
             movedRookView.layoutX = cellsSize * 3.25

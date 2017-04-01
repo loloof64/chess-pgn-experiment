@@ -75,10 +75,23 @@ data class Pawn(override val whitePlayer: Boolean) : ChessPiece(whitePlayer){
                 && game.board[endSquare.rank, endSquare.file] != null
                 && game.board[endSquare.rank, endSquare.file]!!.whitePlayer)
 
+        val isValidEnPassantCaptureAsWhite = (game.info.whiteTurn
+                && startSquare.rank == ChessBoard.RANK_5 && endSquare.rank == ChessBoard.RANK_6
+                && Math.abs(deltaFile) == 1
+                && game.board[endSquare.rank, endSquare.file] == null
+                && game.info.enPassantFile == endSquare.file)
+
+        val isValidEnPassantCaptureAsBlack = (!game.info.whiteTurn
+                && startSquare.rank == ChessBoard.RANK_4 && endSquare.rank == ChessBoard.RANK_3
+                && Math.abs(deltaFile) == 1
+                && game.board[endSquare.rank, endSquare.file] == null
+                && game.info.enPassantFile == endSquare.file)
+
         val ownerPlayer = whitePlayer == game.info.whiteTurn
         val followValidLine = isValidTwoCellsJumpAsWhite || isValidTwoCellsJumpAsBlack
                 || isValidForwardMoveAsWhite || isValidForwardMoveAsBlack
                 || isValidCaptureMoveAsWhite || isValidCaptureMoveAsBlack
+                || isValidEnPassantCaptureAsWhite || isValidEnPassantCaptureAsBlack
 
         return followValidLine && ownerPlayer
     }
