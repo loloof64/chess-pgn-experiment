@@ -150,6 +150,7 @@ class ChessGame(val board: ChessBoard, val info: GameInfo){
                 // update game info
                 val newCastlesRight = mutableListOf(*info.castles.toTypedArray())
                 newCastlesRight.remove(WhiteKingSideCastle)
+                newCastlesRight.remove(WhiteQueenSideCastle)
                 modifiedGameInfo = modifiedGameInfo.copy(castles = newCastlesRight)
             }
             else throw IllegalMoveException()
@@ -169,6 +170,7 @@ class ChessGame(val board: ChessBoard, val info: GameInfo){
 
                 // update game info
                 val newCastlesRight = mutableListOf(*info.castles.toTypedArray())
+                newCastlesRight.remove(WhiteKingSideCastle)
                 newCastlesRight.remove(WhiteQueenSideCastle)
                 modifiedGameInfo = modifiedGameInfo.copy(castles = newCastlesRight)
             }
@@ -189,6 +191,7 @@ class ChessGame(val board: ChessBoard, val info: GameInfo){
                 // update game info
                 val newCastlesRight = mutableListOf(*info.castles.toTypedArray())
                 newCastlesRight.remove(BlackKingSideCastle)
+                newCastlesRight.remove(BlackQueenSideCastle)
                 modifiedGameInfo = modifiedGameInfo.copy(castles = newCastlesRight)
             }
             else throw IllegalMoveException()
@@ -208,6 +211,7 @@ class ChessGame(val board: ChessBoard, val info: GameInfo){
 
                 // update game info
                 val newCastlesRight = mutableListOf(*info.castles.toTypedArray())
+                newCastlesRight.remove(BlackKingSideCastle)
                 newCastlesRight.remove(BlackQueenSideCastle)
                 modifiedGameInfo = modifiedGameInfo.copy(castles = newCastlesRight)
             }
