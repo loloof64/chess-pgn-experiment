@@ -17,6 +17,7 @@ import javafx.scene.text.Text
 import javafx.scene.text.TextFlow
 import javafx.util.Duration
 import tornadofx.*
+import kotlin.reflect.KClass
 
 class MyApp: App(MainView::class)
 
@@ -71,16 +72,37 @@ class ChessBoard : View() {
         }
     }
 
-    private fun movePiece(startCell: Coordinates, endCell: Coordinates){
+    private fun updatePiecesLocations(startCell: Coordinates, endCell: Coordinates){
+        var promotionPiece: PromotablePiece = Queen(game.info.whiteTurn)
+        if (game.isPromotionMove(startCell, endCell)) {
+            val dialog = PromotionDialog(game.info.whiteTurn)
+            val result = dialog.showAndWait()
+            result.ifPresent { promotionPiece = it }
+        }
+
+
         // removing piece at destination cell
         val replacedPieceView = piecesGroup.lookup("#${endCell.rank}${endCell.file}")
         if (replacedPieceView != null) {
             piecesGroup.children.remove(replacedPieceView)
         }
 
-        // moving piece
         val movedPieceView = piecesGroup.lookup("#${startCell.rank}${startCell.file}")
-        if (movedPieceView != null) {
+        if (game.isPromotionMove(startCell, endCell)){
+            // replacing piece for promotion move
+            piecesGroup.children.remove(movedPieceView)
+
+            val promotedPieceView = imageview(pieceToImage(promotionPiece)) {
+                id = "${endCell.rank}${endCell.file}"
+                layoutX = cellsSize * (0.25 + endCell.file)
+                layoutY = cellsSize * (7.25 - endCell.rank)
+                scaleX = picturesScale
+                scaleY = picturesScale
+            }
+            piecesGroup.children.add(promotedPieceView)
+        }
+        else if (movedPieceView != null) {
+            // moving piece for other move
             movedPieceView.id = "${endCell.rank}${endCell.file}"
             movedPieceView.layoutX = cellsSize * (0.25 + endCell.file)
             movedPieceView.layoutY = cellsSize * (7.25 - endCell.rank)
@@ -110,7 +132,7 @@ class ChessBoard : View() {
         }
 
         // updating board logic
-        game = game.doMove(startCell, endCell)
+        game = game.doMove(startSquare = startCell, endSquare = endCell, promotionPiece = promotionPiece)
 
         updatePlayerTurn()
     }
@@ -210,12 +232,12 @@ class ChessBoard : View() {
 
     private fun cellCoordinates(evt: MouseEvent): Coordinates?{
         val startCoordinate = cellsSize * 0.5
-        val endCoordinate = cellsSize * 8.5
-        val inBoard = evt.x in (startCoordinate..endCoordinate) && evt.y in (startCoordinate..endCoordinate)
+        val cellX = ((evt.x - startCoordinate) / cellsSize).toInt()
+        val cellY = 7 - ((evt.y - startCoordinate) / cellsSize).toInt()
+
+        val inBoard = cellX in 0..7 && cellY in 0..7
 
         if (inBoard){
-            val cellX = ((evt.x - startCoordinate) / cellsSize).toInt()
-            val cellY = 7 - ((evt.y - startCoordinate) / cellsSize).toInt()
             return Coordinates(rank = cellY, file = cellX)
         }
         else return null
@@ -308,7 +330,7 @@ class ChessBoard : View() {
 
     private fun validateDnD(cellCoords: Coordinates?) {
         if (cellCoords != null && dragStartCoordinates != null) {
-            movePiece(dragStartCoordinates!!, cellCoords)
+            updatePiecesLocations(dragStartCoordinates!!, cellCoords)
             resetDnDStatus(cellCoords)
         }
     }

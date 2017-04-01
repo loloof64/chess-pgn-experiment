@@ -1,7 +1,6 @@
 package com.loloof64.chess_core.game
 
 import com.loloof64.chess_core.pieces.*
-import kotlin.reflect.KClass
 
 class ChessGame(val board: ChessBoard, val info: GameInfo){
     companion object {
@@ -15,8 +14,7 @@ class ChessGame(val board: ChessBoard, val info: GameInfo){
 
    fun toFEN(): String = "${board.toFEN()} ${info.toFEN()}"
 
-   fun isValidPseudoLegalMove(startSquare: Coordinates,
-                              endSquare: Coordinates): Boolean {
+   fun isValidPseudoLegalMove(startSquare: Coordinates, endSquare: Coordinates): Boolean {
        val pieceAtStartSquare = board[startSquare.rank, startSquare.file]
        if (pieceAtStartSquare?.whitePlayer != info.whiteTurn) return false
        return pieceAtStartSquare.isValidPseudoLegalMove(this, startSquare, endSquare)
@@ -80,12 +78,23 @@ class ChessGame(val board: ChessBoard, val info: GameInfo){
                 && board[ChessBoard.RANK_8, ChessBoard.FILE_B] == null
     }
 
-    fun doMove(startSquare: Coordinates, endSquare: Coordinates): ChessGame{
-        return doMove(startSquare, endSquare, Queen::class)
+    fun isPromotionMove(startSquare: Coordinates, endSquare: Coordinates): Boolean {
+        val pieceAtStartSquare = board[startSquare.rank, startSquare.file] ?: return false
+
+        val promotionAsWhite = info.whiteTurn && pieceAtStartSquare == Pawn(whitePlayer = true)
+                                && endSquare.rank == ChessBoard.RANK_8
+        val promotionAsBlack = !info.whiteTurn && pieceAtStartSquare == Pawn(whitePlayer = false)
+                                && endSquare.rank == ChessBoard.RANK_1
+
+        return promotionAsWhite || promotionAsBlack
     }
 
-    fun <T> doMove(startSquare: Coordinates, endSquare: Coordinates,
-               promotionPiece: KClass<out T>): ChessGame where T: ChessPiece, T: Promotable {
+    fun doMove(startSquare: Coordinates, endSquare: Coordinates): ChessGame{
+        return doMove(startSquare, endSquare, Queen(info.whiteTurn))
+    }
+
+    fun doMove(startSquare: Coordinates, endSquare: Coordinates,
+               promotionPiece: PromotablePiece): ChessGame {
         val pieceAtStartSquare = board[startSquare.rank, startSquare.file] ?: throw NoPieceAtStartCellException()
         if (!pieceAtStartSquare.isValidPseudoLegalMove(this, startSquare, endSquare)) throw IllegalMoveException()
 
@@ -93,7 +102,12 @@ class ChessGame(val board: ChessBoard, val info: GameInfo){
         val newMoveNumber = if (info.whiteTurn) info.moveNumber+1 else info.moveNumber
         var modifiedGameInfo = info.copy(whiteTurn = !info.whiteTurn, moveNumber = newMoveNumber)
 
-        if (isLegalWhiteKingSideCastle(startSquare, endSquare)) {
+        if (isPromotionMove(startSquare, endSquare)){
+            if (promotionPiece.whitePlayer != info.whiteTurn) throw WrongPromotionPieceColor()
+            modifiedBoardArray[startSquare.rank][startSquare.file] = null
+            modifiedBoardArray[endSquare.rank][endSquare.file] = promotionPiece
+        }
+        else if (isLegalWhiteKingSideCastle(startSquare, endSquare)) {
             val pathEmpty = board[ChessBoard.RANK_1, ChessBoard.FILE_F] == null
                             && board[ChessBoard.RANK_1, ChessBoard.FILE_G] == null
             if (pathEmpty){
@@ -226,3 +240,4 @@ class ChessGame(val board: ChessBoard, val info: GameInfo){
 
 class NoPieceAtStartCellException : Exception()
 class IllegalMoveException : Exception()
+class WrongPromotionPieceColor: Exception()

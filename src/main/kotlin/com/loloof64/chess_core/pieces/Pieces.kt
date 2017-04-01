@@ -4,6 +4,8 @@ import com.loloof64.chess_core.game.*
 
 interface Promotable
 
+abstract class PromotablePiece(override val whitePlayer: Boolean) : ChessPiece(whitePlayer), Promotable
+
 sealed class ChessPiece(open val whitePlayer: Boolean) {
     companion object {
         fun fenToPiece(pieceFen: Char): ChessPiece? {
@@ -87,7 +89,7 @@ data class Pawn(override val whitePlayer: Boolean) : ChessPiece(whitePlayer){
 
 
 }
-data class Knight(override val whitePlayer: Boolean) : ChessPiece(whitePlayer), Promotable {
+data class Knight(override val whitePlayer: Boolean) : PromotablePiece(whitePlayer) {
     override fun isValidPseudoLegalMove(game: ChessGame, startSquare: Coordinates, endSquare: Coordinates): Boolean {
         val deltaFile = endSquare.file - startSquare.file
         val deltaRank = endSquare.rank - startSquare.rank
@@ -108,7 +110,7 @@ data class Knight(override val whitePlayer: Boolean) : ChessPiece(whitePlayer), 
         return if (whitePlayer) 'N' else 'n'
     }
 }
-data class Bishop(override val whitePlayer: Boolean) : ChessPiece(whitePlayer), Promotable {
+data class Bishop(override val whitePlayer: Boolean) : PromotablePiece(whitePlayer) {
     override fun isValidPseudoLegalMove(game: ChessGame, startSquare: Coordinates, endSquare: Coordinates): Boolean {
         val deltaFile = endSquare.file - startSquare.file
         val deltaRank = endSquare.rank - startSquare.rank
@@ -131,7 +133,7 @@ data class Bishop(override val whitePlayer: Boolean) : ChessPiece(whitePlayer), 
         return if (whitePlayer) 'B' else 'b'
     }
 }
-data class Rook(override val whitePlayer: Boolean) : ChessPiece(whitePlayer), Promotable {
+data class Rook(override val whitePlayer: Boolean) : PromotablePiece(whitePlayer) {
     override fun isValidPseudoLegalMove(game: ChessGame, startSquare: Coordinates, endSquare: Coordinates): Boolean {
         val deltaFile = endSquare.file - startSquare.file
         val deltaRank = endSquare.rank - startSquare.rank
@@ -154,7 +156,7 @@ data class Rook(override val whitePlayer: Boolean) : ChessPiece(whitePlayer), Pr
         return if (whitePlayer) 'R' else 'r'
     }
 }
-data class Queen(override val whitePlayer: Boolean) : ChessPiece(whitePlayer), Promotable{
+data class Queen(override val whitePlayer: Boolean) : PromotablePiece(whitePlayer) {
     override fun isValidPseudoLegalMove(game: ChessGame, startSquare: Coordinates, endSquare: Coordinates): Boolean {
         val deltaFile = endSquare.file - startSquare.file
         val deltaRank = endSquare.rank - startSquare.rank
