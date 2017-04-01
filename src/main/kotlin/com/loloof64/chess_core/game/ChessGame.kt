@@ -113,27 +113,29 @@ class ChessGame(val board: ChessBoard, val info: GameInfo){
         val pieceAtStartSquare = board[startSquare.rank, startSquare.file] ?: throw NoPieceAtStartCellException()
         if (!pieceAtStartSquare.isValidPseudoLegalMove(this, startSquare, endSquare)) throw IllegalMoveException()
 
+        val capturingMove = board[endSquare.rank, endSquare.file] != null
+
         val deltaFile = endSquare.file - startSquare.file
         val deltaRank = endSquare.rank - startSquare.rank
 
         val modifiedBoardArray = copyBoardIntoArray()
-        val newMoveNumber = if (info.whiteTurn) info.moveNumber+1 else info.moveNumber
+        val newMoveNumber = if (this == INITIAL_POSITION) info.moveNumber else if (info.whiteTurn) info.moveNumber+1 else info.moveNumber
         var modifiedGameInfo = info.copy(whiteTurn = !info.whiteTurn, moveNumber = newMoveNumber)
 
         if (isEnPassantMove(startSquare, endSquare)) {
-            modifiedGameInfo = modifiedGameInfo.copy(enPassantFile = null)
+            modifiedGameInfo = modifiedGameInfo.copy(enPassantFile = null, nullityCount = 0)
             modifiedBoardArray[startSquare.rank][startSquare.file] = null
             modifiedBoardArray[endSquare.rank][endSquare.file] = pieceAtStartSquare
             modifiedBoardArray[if (info.whiteTurn) (endSquare.rank-1) else (endSquare.rank+1)][endSquare.file] = null
         }
         else if (isPromotionMove(startSquare, endSquare)) {
-            modifiedGameInfo = modifiedGameInfo.copy(enPassantFile = null)
+            modifiedGameInfo = modifiedGameInfo.copy(enPassantFile = null, nullityCount = 0)
             if (promotionPiece.whitePlayer != info.whiteTurn) throw WrongPromotionPieceColor()
             modifiedBoardArray[startSquare.rank][startSquare.file] = null
             modifiedBoardArray[endSquare.rank][endSquare.file] = promotionPiece
         }
         else if (isWhiteKingSideCastle(startSquare, endSquare)) {
-            modifiedGameInfo = modifiedGameInfo.copy(enPassantFile = null)
+            modifiedGameInfo = modifiedGameInfo.copy(enPassantFile = null, nullityCount = modifiedGameInfo.nullityCount+1)
             val pathEmpty = board[ChessBoard.RANK_1, ChessBoard.FILE_F] == null
                             && board[ChessBoard.RANK_1, ChessBoard.FILE_G] == null
             if (pathEmpty){
@@ -152,7 +154,7 @@ class ChessGame(val board: ChessBoard, val info: GameInfo){
             }
             else throw IllegalMoveException()
         } else if (isWhiteQueenSideCastle(startSquare, endSquare)) {
-            modifiedGameInfo = modifiedGameInfo.copy(enPassantFile = null)
+            modifiedGameInfo = modifiedGameInfo.copy(enPassantFile = null, nullityCount = modifiedGameInfo.nullityCount+1)
             val pathEmpty = board[ChessBoard.RANK_1, ChessBoard.FILE_D] == null
                     && board[ChessBoard.RANK_1, ChessBoard.FILE_C] == null
                     && board[ChessBoard.RANK_1, ChessBoard.FILE_B] == null
@@ -172,7 +174,7 @@ class ChessGame(val board: ChessBoard, val info: GameInfo){
             }
             else throw IllegalMoveException()
         } else if (isBlackKingSideCastle(startSquare, endSquare)) {
-            modifiedGameInfo = modifiedGameInfo.copy(enPassantFile = null)
+            modifiedGameInfo = modifiedGameInfo.copy(enPassantFile = null, nullityCount = modifiedGameInfo.nullityCount+1)
             val pathEmpty = board[ChessBoard.RANK_8, ChessBoard.FILE_F] == null
                     && board[ChessBoard.RANK_8, ChessBoard.FILE_G] == null
             if (pathEmpty){
@@ -190,8 +192,8 @@ class ChessGame(val board: ChessBoard, val info: GameInfo){
                 modifiedGameInfo = modifiedGameInfo.copy(castles = newCastlesRight)
             }
             else throw IllegalMoveException()
-        } else if (isBlackKingSideCastle(startSquare, endSquare)) {
-            modifiedGameInfo = modifiedGameInfo.copy(enPassantFile = null)
+        } else if (isBlackQueenSideCastle(startSquare, endSquare)) {
+            modifiedGameInfo = modifiedGameInfo.copy(enPassantFile = null, nullityCount = modifiedGameInfo.nullityCount+1)
             val pathEmpty = board[ChessBoard.RANK_8, ChessBoard.FILE_D] == null
                     && board[ChessBoard.RANK_8, ChessBoard.FILE_C] == null
                     && board[ChessBoard.RANK_8, ChessBoard.FILE_B] == null
@@ -220,10 +222,17 @@ class ChessGame(val board: ChessBoard, val info: GameInfo){
                         && deltaFile == 0 && deltaRank == -2 && startSquare.rank == ChessBoard.RANK_7)
 
             if (isPawnTwoCellsJump) {
-                modifiedGameInfo = modifiedGameInfo.copy(enPassantFile = startSquare.file)
+                modifiedGameInfo = modifiedGameInfo.copy(enPassantFile = startSquare.file, nullityCount = 0)
             } else {
                 modifiedGameInfo = modifiedGameInfo.copy(enPassantFile = null)
             }
+
+            if (pieceAtStartSquare::class == Pawn::class || capturingMove){
+                modifiedGameInfo = modifiedGameInfo.copy(nullityCount = 0)
+            } else {
+                modifiedGameInfo = modifiedGameInfo.copy(nullityCount = modifiedGameInfo.nullityCount+1)
+            }
+
             if (pieceAtStartSquare == King(whitePlayer = true)) {
                 // update game info
                 val newCastlesRight = mutableListOf(*info.castles.toTypedArray())

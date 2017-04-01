@@ -17,11 +17,19 @@ import javafx.scene.text.Text
 import javafx.scene.text.TextFlow
 import javafx.util.Duration
 import tornadofx.*
-import kotlin.reflect.KClass
+
+data class FenUpdatingEvent(val fen: String) : FXEvent()
 
 class MyApp: App(MainView::class)
 
 class MainView : View() {
+    init {
+        subscribe<FenUpdatingEvent> {
+            fenZone.text = it.fen
+        }
+    }
+
+    val fenZone = Text(ChessGame.INITIAL_POSITION.toFEN())
     override val root = borderpane {
         title = "Simple chess game"
         center(ChessBoard::class)
@@ -36,6 +44,7 @@ class MainView : View() {
             addText(" ")
             addMoveLink("Na6")
         }.root
+        bottom = fenZone
     }
 }
 
@@ -337,6 +346,7 @@ class ChessBoard : View() {
         if (cellCoords != null && dragStartCoordinates != null) {
             updatePiecesLocations(dragStartCoordinates!!, cellCoords)
             resetDnDStatus(cellCoords)
+            fire(FenUpdatingEvent(game.toFEN()))
         }
     }
 

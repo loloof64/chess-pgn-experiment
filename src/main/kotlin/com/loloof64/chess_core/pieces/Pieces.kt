@@ -55,10 +55,10 @@ data class Pawn(override val whitePlayer: Boolean) : ChessPiece(whitePlayer){
         val deltaFile = endSquare.file - startSquare.file
         val deltaRank = endSquare.rank - startSquare.rank
 
-        val isValidTwoCellsJumpAsWhite = (game.info.whiteTurn && deltaRank == 2 && startSquare.rank == ChessBoard.RANK_2
+        val isValidTwoCellsJumpAsWhite = (game.info.whiteTurn && deltaFile == 0 && deltaRank == 2 && startSquare.rank == ChessBoard.RANK_2
                                         && game.board[ChessBoard.RANK_3, startSquare.file] == null
                                         && game.board[ChessBoard.RANK_4, startSquare.file] == null)
-        val isValidTwoCellsJumpAsBlack = (!game.info.whiteTurn && deltaRank == -2 && startSquare.rank == ChessBoard.RANK_7
+        val isValidTwoCellsJumpAsBlack = (!game.info.whiteTurn && deltaFile == 0 && deltaRank == -2 && startSquare.rank == ChessBoard.RANK_7
                                         && game.board[ChessBoard.RANK_6, startSquare.file] == null
                                         && game.board[ChessBoard.RANK_5, startSquare.file] == null)
 
