@@ -148,7 +148,7 @@ class ChessBoard : View() {
 
 
         /////////////////////////////////////////////////
-        println("${game.info.moveNumber} ${game.getSANForMove(move = move, promotionPiece = promotionPiece)}")
+        println("${game.info.moveNumber} ${game.getFANForMove(move = move, promotionPiece = promotionPiece)}")
         /////////////////////////////////////////////////
 
 
@@ -193,7 +193,7 @@ class ChessBoard : View() {
         }
 
         // adding coordinates
-        val font = Font(20.0)
+        val font = Font("Arial", 20.0)
         val color = c("#1200FC")
         val filesCoordinates = "ABCDEFGH"
         (0..7).forEach{ file ->

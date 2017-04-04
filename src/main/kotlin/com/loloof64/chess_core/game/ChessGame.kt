@@ -70,6 +70,18 @@ data class ChessGame(val board: ChessBoard, val info: GameInfo){
         return builder.toString()
     }
 
+    fun getFANForMove(move: Move, promotionPiece: PromotablePiece = Queen(info.whiteTurn)) : String {
+        //////////////////
+        println(info.whiteTurn)
+        /////////////////////
+        val moveSAN = getSANForMove(move = move, promotionPiece = promotionPiece)
+        return moveSAN.replace('N', if (info.whiteTurn) '\u2658' else '\u265E')
+                .replace('B', if (info.whiteTurn) '\u2657' else '\u265D')
+                .replace('R', if (info.whiteTurn) '\u2656' else '\u265C')
+                .replace('Q', if (info.whiteTurn) '\u2655' else '\u265B')
+                .replace('K', if (info.whiteTurn) '\u2654' else '\u265A')
+    }
+
     fun searchForKingCoordinates(whiteTurn: Boolean) : Coordinates? {
         var playerKingPosition:Coordinates? = null
 
