@@ -3,6 +3,7 @@ package com.loloof64.chess_pgn_experiment
 import com.loloof64.chess_core.pieces.*
 import com.loloof64.chess_core.game.ChessGame
 import com.loloof64.chess_core.game.Coordinates
+import com.loloof64.chess_core.game.Move
 import javafx.animation.KeyFrame
 import javafx.animation.KeyValue
 import javafx.animation.Timeline
@@ -81,9 +82,9 @@ class ChessBoard : View() {
         }
     }
 
-    private fun updatePiecesLocations(startCell: Coordinates, endCell: Coordinates){
+    private fun updatePiecesLocations(move: Move){
         var promotionPiece: PromotablePiece = Queen(game.info.whiteTurn)
-        if (game.isPromotionMove(startCell, endCell)) {
+        if (game.isPromotionMove(move)) {
             val dialog = PromotionDialog(game.info.whiteTurn)
             val result = dialog.showAndWait()
             result.ifPresent { promotionPiece = it }
@@ -91,20 +92,20 @@ class ChessBoard : View() {
 
 
         // removing piece at destination cell
-        val replacedPieceView = piecesGroup.lookup("#${endCell.rank}${endCell.file}")
+        val replacedPieceView = piecesGroup.lookup("#${move.to.rank}${move.to.file}")
         if (replacedPieceView != null) {
             piecesGroup.children.remove(replacedPieceView)
         }
 
-        val movedPieceView = piecesGroup.lookup("#${startCell.rank}${startCell.file}")
-        if (game.isPromotionMove(startCell, endCell)){
+        val movedPieceView = piecesGroup.lookup("#${move.from.rank}${move.from.file}")
+        if (game.isPromotionMove(move)){
             // replacing piece for promotion move
             piecesGroup.children.remove(movedPieceView)
 
             val promotedPieceView = imageview(pieceToImage(promotionPiece)) {
-                id = "${endCell.rank}${endCell.file}"
-                layoutX = cellsSize * (0.25 + endCell.file)
-                layoutY = cellsSize * (7.25 - endCell.rank)
+                id = "${move.to.rank}${move.to.file}"
+                layoutX = cellsSize * (0.25 + move.to.file)
+                layoutY = cellsSize * (7.25 - move.to.rank)
                 scaleX = picturesScale
                 scaleY = picturesScale
             }
@@ -112,33 +113,33 @@ class ChessBoard : View() {
         }
         else if (movedPieceView != null) {
             // moving piece for other move
-            movedPieceView.id = "${endCell.rank}${endCell.file}"
-            movedPieceView.layoutX = cellsSize * (0.25 + endCell.file)
-            movedPieceView.layoutY = cellsSize * (7.25 - endCell.rank)
+            movedPieceView.id = "${move.to.rank}${move.to.file}"
+            movedPieceView.layoutX = cellsSize * (0.25 + move.to.file)
+            movedPieceView.layoutY = cellsSize * (7.25 - move.to.rank)
         }
 
         // Special moves addition
-        if (game.isEnPassantMove(startCell, endCell)) {
+        if (game.isEnPassantMove(move)) {
             val capturedPawnView = piecesGroup.lookup(
-                    "#${if (game.info.whiteTurn) (endCell.rank - 1) else (endCell.rank + 1)}${endCell.file}")
+                    "#${if (game.info.whiteTurn) (move.to.rank - 1) else (move.to.rank + 1)}${move.to.file}")
             piecesGroup.children.remove(capturedPawnView)
         }
-        else if (game.isWhiteKingSideCastle(startCell, endCell)) {
+        else if (game.isWhiteKingSideCastle(move)) {
             val movedRookView = piecesGroup.lookup("#07")
             movedRookView.id = "05"
             movedRookView.layoutX = cellsSize * 5.25
             movedRookView.layoutY = cellsSize * 7.25
-        } else if (game.isWhiteQueenSideCastle(startCell, endCell)) {
+        } else if (game.isWhiteQueenSideCastle(move)) {
             val movedRookView = piecesGroup.lookup("#00")
             movedRookView.id = "03"
             movedRookView.layoutX = cellsSize * 3.25
             movedRookView.layoutY = cellsSize * 7.25
-        } else if (game.isBlackKingSideCastle(startCell, endCell)) {
+        } else if (game.isBlackKingSideCastle(move)) {
             val movedRookView = piecesGroup.lookup("#77")
             movedRookView.id = "75"
             movedRookView.layoutX = cellsSize * 5.25
             movedRookView.layoutY = cellsSize * 0.25
-        } else if (game.isBlackQueenSideCastle(startCell, endCell)) {
+        } else if (game.isBlackQueenSideCastle(move)) {
             val movedRookView = piecesGroup.lookup("#70")
             movedRookView.id = "73"
             movedRookView.layoutX = cellsSize * 3.25
@@ -146,7 +147,7 @@ class ChessBoard : View() {
         }
 
         // updating board logic
-        game = game.doMoveWithValidation(startSquare = startCell, endSquare = endCell, promotionPiece = promotionPiece)
+        game = game.doMoveWithValidation(move = move, promotionPiece = promotionPiece)
 
         updatePlayerTurn()
     }
@@ -334,7 +335,7 @@ class ChessBoard : View() {
         val cellCoords = cellCoordinates(evt)
 
         if (dragStartCoordinates != null && cellCoords != null &&
-                game.isValidMove(dragStartCoordinates!!, cellCoords)){
+                game.isValidMove(Move(from = dragStartCoordinates!!, to = cellCoords))){
             validateDnD(cellCoords)
         }
         else {
@@ -344,9 +345,12 @@ class ChessBoard : View() {
 
     private fun validateDnD(cellCoords: Coordinates?) {
         if (cellCoords != null && dragStartCoordinates != null) {
-            updatePiecesLocations(dragStartCoordinates!!, cellCoords)
+            updatePiecesLocations(Move(from = dragStartCoordinates!!, to = cellCoords))
             resetDnDStatus(cellCoords)
             fire(FenUpdatingEvent(game.toFEN()))
+            //////////////////////////////
+            println("Is player mate : ${game.playerIsMate()}")
+            //////////////////////////////
         }
     }
 
