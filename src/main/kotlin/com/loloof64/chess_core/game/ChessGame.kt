@@ -2,7 +2,7 @@ package com.loloof64.chess_core.game
 
 import com.loloof64.chess_core.pieces.*
 
-class ChessGame(val board: ChessBoard, val info: GameInfo){
+data class ChessGame(val board: ChessBoard, val info: GameInfo){
     companion object {
         fun fenToGame(fen: String): ChessGame {
             return ChessGame(board = ChessBoard.fenToChessBoard(fen),
@@ -14,11 +14,59 @@ class ChessGame(val board: ChessBoard, val info: GameInfo){
 
    fun toFEN(): String = "${board.toFEN()} ${info.toFEN()}"
 
-   fun isValidPseudoLegalMove(startSquare: Coordinates, endSquare: Coordinates): Boolean {
-       val pieceAtStartSquare = board[startSquare.rank, startSquare.file]
-       if (pieceAtStartSquare?.whitePlayer != info.whiteTurn) return false
-       return pieceAtStartSquare.isValidPseudoLegalMove(this, startSquare, endSquare)
+    fun playerKingIsAttacked() : Boolean {
+        val gameWithTurnInverse = copy(info = info.copy(whiteTurn = !this.info.whiteTurn, enPassantFile = null))
+        var playerKingPosition:Coordinates? = null
+        var isAttacked = false
+
+        // search for king position
+        kingPositionOuterLoop@ for (rank in 0..7){
+            for (file in 0..7){
+                if (gameWithTurnInverse.board[rank, file] == King(info.whiteTurn)) {
+                    playerKingPosition = Coordinates(rank, file)
+                    break@kingPositionOuterLoop
+                }
+            }
+        }
+
+        if (playerKingPosition == null) throw PlayerHasNoKingException()
+
+        attackSearchOuterLoop@ for(rank in 0..7){
+            for (file in 0..7){
+                /*
+                We can't test with kings because of infinite recursive calls between methods
+                But anyway, that does not matter as a king can't attack the other king.
+                 */
+                if (gameWithTurnInverse.board[rank, file] !is King
+                && gameWithTurnInverse.isValidPseudoMove(
+                        Coordinates(rank = rank, file = file), playerKingPosition)){
+                    isAttacked = true
+                    break@attackSearchOuterLoop
+                }
+            }
+        }
+
+        return isAttacked
+    }
+
+    fun playerKingIsUnderAttackAfterMove(startSquare: Coordinates, endSquare: Coordinates) : Boolean {
+        val positionAfterMove = this.copy().doMoveWithoutValidation(startSquare, endSquare)
+        val positionAfterMoveButWithCurrentPlayerTurn_GameInfo = positionAfterMove.info.copy(whiteTurn = this.info.whiteTurn)
+        val positionAfterMoveButWithCurrentPlayerTurn = positionAfterMove.copy(info = positionAfterMoveButWithCurrentPlayerTurn_GameInfo)
+
+        return positionAfterMoveButWithCurrentPlayerTurn.playerKingIsAttacked()
+    }
+
+   fun isValidMove(startSquare: Coordinates, endSquare: Coordinates): Boolean {
+       return isValidPseudoMove(startSquare, endSquare)
+        && !playerKingIsUnderAttackAfterMove(startSquare, endSquare)
    }
+
+    fun isValidPseudoMove(startSquare: Coordinates, endSquare: Coordinates): Boolean {
+        val pieceAtStartSquare = board[startSquare.rank, startSquare.file]
+        if (pieceAtStartSquare?.whitePlayer != info.whiteTurn) return false
+        return pieceAtStartSquare.isValidPseudoLegalMove(this, startSquare, endSquare)
+    }
 
     fun isWhiteKingSideCastle(startSquare: Coordinates,
                               endSquare: Coordinates): Boolean {
@@ -102,16 +150,25 @@ class ChessGame(val board: ChessBoard, val info: GameInfo){
         return promotionAsWhite || promotionAsBlack
     }
 
-
-
-    fun doMove(startSquare: Coordinates, endSquare: Coordinates): ChessGame{
-        return doMove(startSquare, endSquare, Queen(info.whiteTurn))
+    fun doMoveWithValidation(startSquare: Coordinates, endSquare: Coordinates): ChessGame {
+        return doMoveWithValidation(startSquare, endSquare)
     }
 
-    fun doMove(startSquare: Coordinates, endSquare: Coordinates,
-               promotionPiece: PromotablePiece): ChessGame {
+    fun doMoveWithValidation(startSquare: Coordinates, endSquare: Coordinates,
+                             promotionPiece: PromotablePiece): ChessGame {
         val pieceAtStartSquare = board[startSquare.rank, startSquare.file] ?: throw NoPieceAtStartCellException()
         if (!pieceAtStartSquare.isValidPseudoLegalMove(this, startSquare, endSquare)) throw IllegalMoveException()
+
+        return doMoveWithoutValidation(startSquare, endSquare, promotionPiece)
+    }
+
+    fun doMoveWithoutValidation(startSquare: Coordinates, endSquare: Coordinates): ChessGame {
+        return doMoveWithoutValidation(startSquare, endSquare, Queen(info.whiteTurn))
+    }
+
+    fun doMoveWithoutValidation(startSquare: Coordinates, endSquare: Coordinates,
+                                promotionPiece: PromotablePiece): ChessGame {
+        val pieceAtStartSquare = board[startSquare.rank, startSquare.file] ?: throw NoPieceAtStartCellException()
 
         val capturingMove = board[endSquare.rank, endSquare.file] != null
 
@@ -293,3 +350,4 @@ class ChessGame(val board: ChessBoard, val info: GameInfo){
 class NoPieceAtStartCellException : Exception()
 class IllegalMoveException : Exception()
 class WrongPromotionPieceColor: Exception()
+class PlayerHasNoKingException: Exception()

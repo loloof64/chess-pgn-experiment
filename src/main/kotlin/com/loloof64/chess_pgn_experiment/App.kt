@@ -146,7 +146,7 @@ class ChessBoard : View() {
         }
 
         // updating board logic
-        game = game.doMove(startSquare = startCell, endSquare = endCell, promotionPiece = promotionPiece)
+        game = game.doMoveWithValidation(startSquare = startCell, endSquare = endCell, promotionPiece = promotionPiece)
 
         updatePlayerTurn()
     }
@@ -334,7 +334,7 @@ class ChessBoard : View() {
         val cellCoords = cellCoordinates(evt)
 
         if (dragStartCoordinates != null && cellCoords != null &&
-                game.isValidPseudoLegalMove(dragStartCoordinates!!, cellCoords)){
+                game.isValidMove(dragStartCoordinates!!, cellCoords)){
             validateDnD(cellCoords)
         }
         else {
