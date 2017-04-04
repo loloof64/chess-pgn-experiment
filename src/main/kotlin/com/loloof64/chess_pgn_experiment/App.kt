@@ -146,6 +146,12 @@ class ChessBoard : View() {
             movedRookView.layoutY = cellsSize * 0.25
         }
 
+
+        /////////////////////////////////////////////////
+        println("${game.info.moveNumber} ${game.getSANForMove(move = move, promotionPiece = promotionPiece)}")
+        /////////////////////////////////////////////////
+
+
         // updating board logic
         game = game.doMoveWithValidation(move = move, promotionPiece = promotionPiece)
 
@@ -345,12 +351,10 @@ class ChessBoard : View() {
 
     private fun validateDnD(cellCoords: Coordinates?) {
         if (cellCoords != null && dragStartCoordinates != null) {
-            updatePiecesLocations(Move(from = dragStartCoordinates!!, to = cellCoords))
+            val move = Move(from = dragStartCoordinates!!, to = cellCoords)
+            updatePiecesLocations(move)
             resetDnDStatus(cellCoords)
             fire(FenUpdatingEvent(game.toFEN()))
-            //////////////////////////////
-            println("Is player mate : ${game.playerIsMate()}")
-            //////////////////////////////
         }
     }
 

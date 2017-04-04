@@ -14,6 +14,62 @@ data class ChessGame(val board: ChessBoard, val info: GameInfo){
 
    fun toFEN(): String = "${board.toFEN()} ${info.toFEN()}"
 
+    fun getSANForMove(move: Move, promotionPiece: PromotablePiece = Queen(info.whiteTurn)) : String {
+        if (!isValidMove(move)) throw IllegalMoveException()
+
+        val builder = StringBuilder()
+
+        if (isWhiteKingSideCastle(move) || isBlackKingSideCastle(move)) builder.append("O-O")
+        else if (isWhiteQueenSideCastle(move) || isBlackQueenSideCastle(move)) builder.append("O-O-O")
+        else {
+            val pieceAtStartSquare = board[move.from.rank, move.from.file]
+            if (pieceAtStartSquare == null) throw NoPieceAtStartCellException()
+
+            if (pieceAtStartSquare is Pawn) {
+                val isCapturingMove = move.from.file != move.to.file
+                val isPromotionMove = isPromotionMove(move)
+
+                if (isCapturingMove) {
+                    builder.append(('a'.toInt() + move.from.file).toChar())
+                    builder.append('x')
+                }
+                builder.append(('a'.toInt() + move.to.file).toChar())
+                builder.append(('1'.toInt() + move.to.rank).toChar())
+
+                if (isPromotionMove){
+                    builder.append('=')
+                    builder.append(promotionPiece.toFEN().toUpperCase())
+                }
+            }
+            else {
+                val allMovesWithSameEndSquareAndSameMovingPiece = getAllPossibleMoves().filter { it.to == move.to }.filter {
+                    val soughtMovePieceAtStartSquare = board[it.from.rank, it.from.file]
+                    soughtMovePieceAtStartSquare == pieceAtStartSquare
+                }.filter { it != move }
+
+                val samePieceWithSameRank = allMovesWithSameEndSquareAndSameMovingPiece.any{ it.from.rank == move.from.rank }
+                val samePieceWithSameFile = allMovesWithSameEndSquareAndSameMovingPiece.any{ it.from.file == move.from.file }
+
+                builder.append(pieceAtStartSquare.toFEN().toUpperCase())
+                if (samePieceWithSameRank) builder.append(('a'.toInt() + move.from.file).toChar())
+                if (samePieceWithSameFile) builder.append(('1'.toInt() + move.from.rank).toChar())
+
+                val pieceAtEndSquare = board[move.to.rank, move.to.file]
+                val isCapturingMove = pieceAtEndSquare?.whitePlayer == !info.whiteTurn
+                if (isCapturingMove) builder.append('x')
+
+                builder.append(('a'.toInt() + move.to.file).toChar())
+                builder.append(('1'.toInt() + move.to.rank).toChar())
+            }
+        }
+
+        val positionAfterMove = doMoveWithValidation(move)
+        if (positionAfterMove.playerIsMate()) builder.append('#')
+        else if (positionAfterMove.playerKingIsAttacked()) builder.append('+')
+
+        return builder.toString()
+    }
+
     fun searchForKingCoordinates(whiteTurn: Boolean) : Coordinates? {
         var playerKingPosition:Coordinates? = null
 
@@ -184,24 +240,16 @@ data class ChessGame(val board: ChessBoard, val info: GameInfo){
         return promotionAsWhite || promotionAsBlack
     }
 
-    fun doMoveWithValidation(move: Move): ChessGame {
-        return doMoveWithValidation(move, Queen(info.whiteTurn))
-    }
-
     fun doMoveWithValidation(move: Move,
-                             promotionPiece: PromotablePiece): ChessGame {
+                             promotionPiece: PromotablePiece = Queen(info.whiteTurn)): ChessGame {
         val pieceAtStartSquare = board[move.from.rank, move.from.file] ?: throw NoPieceAtStartCellException()
         if (!pieceAtStartSquare.isValidPseudoLegalMove(this, move)) throw IllegalMoveException()
 
         return doMoveWithoutValidation(move, promotionPiece)
     }
 
-    fun doMoveWithoutValidation(move: Move): ChessGame {
-        return doMoveWithoutValidation(move, Queen(info.whiteTurn))
-    }
-
     fun doMoveWithoutValidation(move: Move,
-                                promotionPiece: PromotablePiece): ChessGame {
+                                promotionPiece: PromotablePiece = Queen(info.whiteTurn)): ChessGame {
         val pieceAtStartSquare = board[move.from.rank, move.from.file] ?: throw NoPieceAtStartCellException()
 
         val capturingMove = board[move.to.rank, move.to.file] != null
@@ -210,7 +258,7 @@ data class ChessGame(val board: ChessBoard, val info: GameInfo){
         val deltaRank = move.to.rank - move.from.rank
 
         val modifiedBoardArray = copyBoardIntoArray()
-        val newMoveNumber = if (this == INITIAL_POSITION) info.moveNumber else if (info.whiteTurn) info.moveNumber+1 else info.moveNumber
+        val newMoveNumber = if (!info.whiteTurn) info.moveNumber+1 else info.moveNumber
         var modifiedGameInfo = info.copy(whiteTurn = !info.whiteTurn, moveNumber = newMoveNumber)
 
         if (isEnPassantMove(move)) {
