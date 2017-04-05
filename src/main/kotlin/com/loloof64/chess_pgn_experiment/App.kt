@@ -41,6 +41,7 @@ class MainView : View() {
 
         subscribe<ChangeChessBoardPosition> {
             chessBoard.setPosition(it.fen)
+            fenZone.text = it.fen
         }
     }
 
