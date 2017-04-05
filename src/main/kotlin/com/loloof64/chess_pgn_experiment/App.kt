@@ -21,6 +21,7 @@ import tornadofx.*
 
 data class FenUpdatingEvent(val fen: String) : FXEvent()
 data class AddFANToHistory(val fan: String, val relatedPosition: ChessGame) : FXEvent()
+data class ChangeChessBoardPosition(val fen: String) : FXEvent()
 
 class MyApp: App(MainView::class)
 
@@ -37,14 +38,19 @@ class MainView : View() {
 
             historyZone.addMoveLink(it.fan, it.relatedPosition)
         }
+
+        subscribe<ChangeChessBoardPosition> {
+            chessBoard.setPosition(it.fen)
+        }
     }
 
     val fenZone = Text(ChessGame.INITIAL_POSITION.toFEN())
     val historyZone = MovesHistory()
+    val chessBoard = ChessBoard()
 
     override val root = borderpane {
         title = "Simple chess game"
-        center(ChessBoard::class)
+        center = chessBoard.root
         right = historyZone.root
         bottom = fenZone
     }
@@ -64,6 +70,16 @@ class ChessBoard : View() {
     private var dragStartHighlighter: Label? = null
     private var dragStartCoordinates: Coordinates? = null
     private var movedPieceCursor: ImageView? = null
+
+    fun setPosition(fen: String) {
+        val relatedGame = ChessGame.fenToGame(fen)
+        game = relatedGame
+
+        piecesGroup.children.clear()
+        addAllPieces()
+
+        updatePlayerTurn()
+    }
 
     fun pieceToImage(piece: ChessPiece?) : String? {
         return when (piece) {
@@ -228,8 +244,14 @@ class ChessBoard : View() {
         // adding pieces
 
         children.add(piecesGroup)
-        for (rank in 0..7){
-            for (file in 0..7){
+        addAllPieces()
+
+        updatePlayerTurn()
+    }
+
+    private fun addAllPieces() {
+        for (rank in 0..7) {
+            for (file in 0..7) {
                 val piece = game.board[rank, file]
                 val image = pieceToImage(piece)
                 if (image != null) {
@@ -237,14 +259,12 @@ class ChessBoard : View() {
                         id = "$rank$file"
                         scaleX = picturesScale
                         scaleY = picturesScale
-                        layoutX = cellsSize*(file.toDouble() + 0.25)
-                        layoutY = cellsSize*(7.25 -rank.toDouble())
+                        layoutX = cellsSize * (file.toDouble() + 0.25)
+                        layoutY = cellsSize * (7.25 - rank.toDouble())
                     })
                 }
             }
         }
-
-        updatePlayerTurn()
     }
 
     private fun cellCoordinates(evt: MouseEvent): Coordinates?{
@@ -406,14 +426,14 @@ class MovesHistory : View() {
     }
 
     fun addMoveLink(text: String, relatedPosition: ChessGame) {
-        flow += MoveLink(text, relatedPosition)
+        flow += MoveLink(text, relatedPosition, this)
     }
 }
 
-class MoveLink(moveText: String, val relatedPosition: ChessGame) : Hyperlink(moveText){
+class MoveLink(moveText: String, val relatedPosition: ChessGame, val parentView: MovesHistory) : Hyperlink(moveText){
     init {
         setOnAction {
-            println("Choose position fen : ${relatedPosition.toFEN()}")
+            parentView.fire(ChangeChessBoardPosition(fen = relatedPosition.toFEN()))
         }
     }
 }
