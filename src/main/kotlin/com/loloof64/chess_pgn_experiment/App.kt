@@ -20,6 +20,7 @@ import javafx.util.Duration
 import tornadofx.*
 
 data class FenUpdatingEvent(val fen: String) : FXEvent()
+data class AddFANToHistory(val fan: String, val relatedPosition: ChessGame) : FXEvent()
 
 class MyApp: App(MainView::class)
 
@@ -28,23 +29,23 @@ class MainView : View() {
         subscribe<FenUpdatingEvent> {
             fenZone.text = it.fen
         }
+
+        subscribe<AddFANToHistory> {
+            if (!it.relatedPosition.info.whiteTurn) {
+                historyZone.addText("${it.relatedPosition.info.moveNumber}.")
+            }
+
+            historyZone.addMoveLink(it.fan, it.relatedPosition)
+        }
     }
 
     val fenZone = Text(ChessGame.INITIAL_POSITION.toFEN())
+    val historyZone = MovesHistory()
+
     override val root = borderpane {
         title = "Simple chess game"
         center(ChessBoard::class)
-        right = MovesHistory().apply {
-            addText("1. ")
-            addMoveLink("d4")
-            addText(" ")
-            addMoveLink("Nf6")
-
-            addText(" 2. ")
-            addMoveLink("h3")
-            addText(" ")
-            addMoveLink("Na6")
-        }.root
+        right = historyZone.root
         bottom = fenZone
     }
 }
@@ -146,14 +147,9 @@ class ChessBoard : View() {
             movedRookView.layoutY = cellsSize * 0.25
         }
 
-
-        /////////////////////////////////////////////////
-        println("${game.info.moveNumber} ${game.getFANForMove(move = move, promotionPiece = promotionPiece)}")
-        /////////////////////////////////////////////////
-
-
-        // updating board logic
-        game = game.doMoveWithValidation(move = move, promotionPiece = promotionPiece)
+        val positionAfterMove = game.doMoveWithValidation(move = move, promotionPiece = promotionPiece)
+        fire(AddFANToHistory(game.getFANForMove(move = move, promotionPiece = promotionPiece), relatedPosition = positionAfterMove))
+        game = positionAfterMove
 
         updatePlayerTurn()
     }
@@ -409,15 +405,15 @@ class MovesHistory : View() {
         flow += Text(text)
     }
 
-    fun addMoveLink(text: String) {
-        flow += MoveLink(text)
+    fun addMoveLink(text: String, relatedPosition: ChessGame) {
+        flow += MoveLink(text, relatedPosition)
     }
 }
 
-class MoveLink(val moveText: String) : Hyperlink(moveText){
+class MoveLink(moveText: String, val relatedPosition: ChessGame) : Hyperlink(moveText){
     init {
         setOnAction {
-            println("$moveText choose !")
+            println("Choose position fen : ${relatedPosition.toFEN()}")
         }
     }
 }

@@ -71,9 +71,6 @@ data class ChessGame(val board: ChessBoard, val info: GameInfo){
     }
 
     fun getFANForMove(move: Move, promotionPiece: PromotablePiece = Queen(info.whiteTurn)) : String {
-        //////////////////
-        println(info.whiteTurn)
-        /////////////////////
         val moveSAN = getSANForMove(move = move, promotionPiece = promotionPiece)
         return moveSAN.replace('N', if (info.whiteTurn) '\u2658' else '\u265E')
                 .replace('B', if (info.whiteTurn) '\u2657' else '\u265D')
