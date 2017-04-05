@@ -419,6 +419,7 @@ class MovesHistory : View() {
     private var flow : TextFlow by singleAssign()
     override val root = scrollpane {
         flow = textflow {  }
+        prefWidth = 500.0
     }
 
     fun addText(text: String) {
