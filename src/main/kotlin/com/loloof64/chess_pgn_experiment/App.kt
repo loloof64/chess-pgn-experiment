@@ -467,6 +467,9 @@ class MovesHistory : View() {
                 (1..tabLevel).forEach { addText(tabulation) }
                 addText("(\n")
                 (1..tabLevel).forEach { addText(tabulation) }
+
+                addText("${currentChild.parentNode!!.relatedPosition.info.moveNumber}.")
+                if (!currentChild.parentNode.relatedPosition.info.whiteTurn) addText("..")
             }
 
             addMovesFromNode(currentChild)
