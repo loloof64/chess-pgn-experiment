@@ -444,11 +444,11 @@ class MovesHistory : View() {
 
     fun updateMovesFromRootNode(rootNode: HistoryNode) {
         flow.clear()
-        addMovesFromNode(rootNode)
+        addAllMovesFromNode(rootNode)
     }
 
-    fun addMovesFromNode(nodeToAdd: HistoryNode) {
-        val tabulation = "    "
+    /** Just adding the first move, and if needed (white player ?), the move number */
+    fun addHeadMove(nodeToAdd: HistoryNode){
         if (!nodeToAdd.relatedPosition.info.whiteTurn) {
             addText("${nodeToAdd.relatedPosition.info.moveNumber}.")
         }
@@ -459,9 +459,12 @@ class MovesHistory : View() {
         else {
             addMoveLink(nodeToAdd.moveLeadingToThisNodeFAN!!, nodeToAdd)
         }
+    }
 
+    fun addVariantsMoves(nodeToAdd: HistoryNode) {
+        val tabulation = "    "
         nodeToAdd.children.forEachIndexed { index, currentChild ->
-            if (index > 0) { // No tabulation for the main line
+            if (index > 0) { // ignoring the main line
                 tabLevel++
                 addText("\n")
                 (1..tabLevel).forEach { addText(tabulation) }
@@ -470,17 +473,21 @@ class MovesHistory : View() {
 
                 addText("${currentChild.parentNode!!.relatedPosition.info.moveNumber}.")
                 if (!currentChild.parentNode.relatedPosition.info.whiteTurn) addText("..")
-            }
 
-            addMovesFromNode(currentChild)
+                addAllMovesFromNode(currentChild)
 
-            if (index > 0) { // No tabulation for the main line
                 addText("\n")
                 (1..tabLevel).forEach { addText(tabulation) }
                 addText(")")
                 tabLevel--
             }
         }
+    }
+
+    fun addAllMovesFromNode(nodeToAdd: HistoryNode) {
+        addHeadMove(nodeToAdd)
+        addVariantsMoves(nodeToAdd)
+        if (nodeToAdd.children.isNotEmpty()) addAllMovesFromNode(nodeToAdd.children[0])
     }
 }
 
