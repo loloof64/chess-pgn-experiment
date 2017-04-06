@@ -38,12 +38,7 @@ class MainView : View() {
         }
 
         subscribe<AddFANToHistory> {
-            val currentHistoryNode = it.historyNode
-            if (!currentHistoryNode.relatedPosition.info.whiteTurn) {
-                historyZone.addText("${currentHistoryNode.relatedPosition.info.moveNumber}.")
-            }
-
-            historyZone.addMoveLink(it.fan, currentHistoryNode)
+            historyZone.updateMovesFromRootNode(historyRootNode)
         }
 
         subscribe<ChangeChessBoardPosition> {
@@ -54,7 +49,8 @@ class MainView : View() {
         }
     }
 
-    val historyRootNode = HistoryNode(relatedPosition = ChessGame.INITIAL_POSITION, parentNode = null)
+    val historyRootNode = HistoryNode(relatedPosition = ChessGame.INITIAL_POSITION, parentNode = null,
+            moveLeadingToThisNodeFAN = null)
     val fenZone = Text(historyRootNode.relatedPosition.toFEN())
     val historyZone = MovesHistory()
     val chessBoard = ChessBoard(historyRootNode)
@@ -173,8 +169,10 @@ class ChessBoard(startHistoryNode: HistoryNode) : View() {
             movedRookView.layoutY = cellsSize * 0.25
         }
 
+        val moveFAN = currentHistoryNode.relatedPosition.getFANForMove(move = move, promotionPiece = promotionPiece)
         val positionAfterMove = currentHistoryNode.relatedPosition.doMoveWithValidation(move = move, promotionPiece = promotionPiece)
-        val historyNodeAfterMove = HistoryNode(parentNode = currentHistoryNode, relatedPosition = positionAfterMove)
+        val historyNodeAfterMove = HistoryNode(parentNode = currentHistoryNode, relatedPosition = positionAfterMove,
+                moveLeadingToThisNodeFAN = moveFAN)
         fire(AddFANToHistory(currentHistoryNode.relatedPosition.getFANForMove(move = move, promotionPiece = promotionPiece),
                 historyNode = historyNodeAfterMove))
         currentHistoryNode = historyNodeAfterMove
@@ -429,17 +427,57 @@ class ChessBoard(startHistoryNode: HistoryNode) : View() {
 
 class MovesHistory : View() {
     private var flow : TextFlow by singleAssign()
+    private var tabLevel = 0
+
     override val root = scrollpane {
         flow = textflow {  }
         prefWidth = 500.0
     }
 
-    fun addText(text: String) {
+    private fun addText(text: String) {
         flow += Text(text)
     }
 
-    fun addMoveLink(text: String, relatedHistoryNode: HistoryNode) {
+    private fun addMoveLink(text: String, relatedHistoryNode: HistoryNode) {
         flow += MoveLink(text, relatedHistoryNode, this)
+    }
+
+    fun updateMovesFromRootNode(rootNode: HistoryNode) {
+        flow.clear()
+        addMovesFromNode(rootNode)
+    }
+
+    fun addMovesFromNode(nodeToAdd: HistoryNode) {
+        val tabulation = "    "
+        if (!nodeToAdd.relatedPosition.info.whiteTurn) {
+            addText("${nodeToAdd.relatedPosition.info.moveNumber}.")
+        }
+
+        if (nodeToAdd.parentNode == null) {
+            addMoveLink("|", nodeToAdd)
+        }
+        else {
+            addMoveLink(nodeToAdd.moveLeadingToThisNodeFAN!!, nodeToAdd)
+        }
+
+        nodeToAdd.children.forEachIndexed { index, currentChild ->
+            if (index > 0) { // No tabulation for the main line
+                tabLevel++
+                addText("\n")
+                (1..tabLevel).forEach { addText(tabulation) }
+                addText("(\n")
+                (1..tabLevel).forEach { addText(tabulation) }
+            }
+
+            addMovesFromNode(currentChild)
+
+            if (index > 0) { // No tabulation for the main line
+                addText("\n")
+                (1..tabLevel).forEach { addText(tabulation) }
+                addText(")")
+                tabLevel--
+            }
+        }
     }
 }
 
