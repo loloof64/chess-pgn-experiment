@@ -4,9 +4,11 @@ import com.loloof64.chess_core.pieces.*
 import com.loloof64.chess_core.game.ChessGame
 import com.loloof64.chess_core.game.Coordinates
 import com.loloof64.chess_core.game.Move
+import com.loloof64.chess_core.history.HistoryNode
 import javafx.animation.KeyFrame
 import javafx.animation.KeyValue
 import javafx.animation.Timeline
+import javafx.application.Application
 import javafx.scene.Cursor
 import javafx.scene.Group
 import javafx.scene.control.Hyperlink
@@ -20,8 +22,12 @@ import javafx.util.Duration
 import tornadofx.*
 
 data class FenUpdatingEvent(val fen: String) : FXEvent()
-data class AddFANToHistory(val fan: String, val relatedPosition: ChessGame) : FXEvent()
-data class ChangeChessBoardPosition(val fen: String) : FXEvent()
+data class AddFANToHistory(val fan: String, val historyNode: HistoryNode) : FXEvent()
+data class ChangeChessBoardPosition(val historyNode: HistoryNode) : FXEvent()
+
+fun main(args: Array<String>) {
+    Application.launch(MyApp::class.java, *args)
+}
 
 class MyApp: App(MainView::class)
 
@@ -32,22 +38,26 @@ class MainView : View() {
         }
 
         subscribe<AddFANToHistory> {
-            if (!it.relatedPosition.info.whiteTurn) {
-                historyZone.addText("${it.relatedPosition.info.moveNumber}.")
+            val currentHistoryNode = it.historyNode
+            if (!currentHistoryNode.relatedPosition.info.whiteTurn) {
+                historyZone.addText("${currentHistoryNode.relatedPosition.info.moveNumber}.")
             }
 
-            historyZone.addMoveLink(it.fan, it.relatedPosition)
+            historyZone.addMoveLink(it.fan, currentHistoryNode)
         }
 
         subscribe<ChangeChessBoardPosition> {
-            chessBoard.setPosition(it.fen)
-            fenZone.text = it.fen
+            val currentHistoryNode = it.historyNode
+            val currentFEN = currentHistoryNode.relatedPosition.toFEN()
+            chessBoard.setHistoryNode(currentHistoryNode)
+            fenZone.text = currentFEN
         }
     }
 
-    val fenZone = Text(ChessGame.INITIAL_POSITION.toFEN())
+    val historyRootNode = HistoryNode(relatedPosition = ChessGame.INITIAL_POSITION, parentNode = null)
+    val fenZone = Text(historyRootNode.relatedPosition.toFEN())
     val historyZone = MovesHistory()
-    val chessBoard = ChessBoard()
+    val chessBoard = ChessBoard(historyRootNode)
 
     override val root = borderpane {
         title = "Simple chess game"
@@ -57,14 +67,14 @@ class MainView : View() {
     }
 }
 
-class ChessBoard : View() {
+class ChessBoard(startHistoryNode: HistoryNode) : View() {
     private val cellsSize = 50.0
     private val picturesSize = 75.0
     private val cursorOffset = cellsSize * 0.50
     private val picturesScale = cellsSize / picturesSize
 
     private val piecesGroup = Group()
-    private var game = ChessGame.INITIAL_POSITION
+    private var currentHistoryNode = startHistoryNode
 
     private var turnComponent: Label? = null
     private var currentHighlighter: Label? = null
@@ -72,9 +82,8 @@ class ChessBoard : View() {
     private var dragStartCoordinates: Coordinates? = null
     private var movedPieceCursor: ImageView? = null
 
-    fun setPosition(fen: String) {
-        val relatedGame = ChessGame.fenToGame(fen)
-        game = relatedGame
+    fun setHistoryNode(node: HistoryNode) {
+        currentHistoryNode = node
 
         piecesGroup.children.clear()
         addAllPieces()
@@ -101,9 +110,9 @@ class ChessBoard : View() {
     }
 
     private fun updatePiecesLocations(move: Move){
-        var promotionPiece: PromotablePiece = Queen(game.info.whiteTurn)
-        if (game.isPromotionMove(move)) {
-            val dialog = PromotionDialog(game.info.whiteTurn)
+        var promotionPiece: PromotablePiece = Queen(currentHistoryNode.relatedPosition.info.whiteTurn)
+        if (currentHistoryNode.relatedPosition.isPromotionMove(move)) {
+            val dialog = PromotionDialog(currentHistoryNode.relatedPosition.info.whiteTurn)
             val result = dialog.showAndWait()
             result.ifPresent { promotionPiece = it }
         }
@@ -116,7 +125,7 @@ class ChessBoard : View() {
         }
 
         val movedPieceView = piecesGroup.lookup("#${move.from.rank}${move.from.file}")
-        if (game.isPromotionMove(move)){
+        if (currentHistoryNode.relatedPosition.isPromotionMove(move)){
             // replacing piece for promotion move
             piecesGroup.children.remove(movedPieceView)
 
@@ -137,36 +146,38 @@ class ChessBoard : View() {
         }
 
         // Special moves addition
-        if (game.isEnPassantMove(move)) {
+        if (currentHistoryNode.relatedPosition.isEnPassantMove(move)) {
             val capturedPawnView = piecesGroup.lookup(
-                    "#${if (game.info.whiteTurn) (move.to.rank - 1) else (move.to.rank + 1)}${move.to.file}")
+                    "#${if (currentHistoryNode.relatedPosition.info.whiteTurn) (move.to.rank - 1) else (move.to.rank + 1)}${move.to.file}")
             piecesGroup.children.remove(capturedPawnView)
         }
-        else if (game.isWhiteKingSideCastle(move)) {
+        else if (currentHistoryNode.relatedPosition.isWhiteKingSideCastle(move)) {
             val movedRookView = piecesGroup.lookup("#07")
             movedRookView.id = "05"
             movedRookView.layoutX = cellsSize * 5.25
             movedRookView.layoutY = cellsSize * 7.25
-        } else if (game.isWhiteQueenSideCastle(move)) {
+        } else if (currentHistoryNode.relatedPosition.isWhiteQueenSideCastle(move)) {
             val movedRookView = piecesGroup.lookup("#00")
             movedRookView.id = "03"
             movedRookView.layoutX = cellsSize * 3.25
             movedRookView.layoutY = cellsSize * 7.25
-        } else if (game.isBlackKingSideCastle(move)) {
+        } else if (currentHistoryNode.relatedPosition.isBlackKingSideCastle(move)) {
             val movedRookView = piecesGroup.lookup("#77")
             movedRookView.id = "75"
             movedRookView.layoutX = cellsSize * 5.25
             movedRookView.layoutY = cellsSize * 0.25
-        } else if (game.isBlackQueenSideCastle(move)) {
+        } else if (currentHistoryNode.relatedPosition.isBlackQueenSideCastle(move)) {
             val movedRookView = piecesGroup.lookup("#70")
             movedRookView.id = "73"
             movedRookView.layoutX = cellsSize * 3.25
             movedRookView.layoutY = cellsSize * 0.25
         }
 
-        val positionAfterMove = game.doMoveWithValidation(move = move, promotionPiece = promotionPiece)
-        fire(AddFANToHistory(game.getFANForMove(move = move, promotionPiece = promotionPiece), relatedPosition = positionAfterMove))
-        game = positionAfterMove
+        val positionAfterMove = currentHistoryNode.relatedPosition.doMoveWithValidation(move = move, promotionPiece = promotionPiece)
+        val historyNodeAfterMove = HistoryNode(parentNode = currentHistoryNode, relatedPosition = positionAfterMove)
+        fire(AddFANToHistory(currentHistoryNode.relatedPosition.getFANForMove(move = move, promotionPiece = promotionPiece),
+                historyNode = historyNodeAfterMove))
+        currentHistoryNode = historyNodeAfterMove
 
         updatePlayerTurn()
     }
@@ -253,7 +264,7 @@ class ChessBoard : View() {
     private fun addAllPieces() {
         for (rank in 0..7) {
             for (file in 0..7) {
-                val piece = game.board[rank, file]
+                val piece = currentHistoryNode.relatedPosition.board[rank, file]
                 val image = pieceToImage(piece)
                 if (image != null) {
                     piecesGroup.add(imageview(image) {
@@ -294,8 +305,8 @@ class ChessBoard : View() {
     private fun startPieceDragging(evt: MouseEvent){
         val cellCoords = cellCoordinates(evt)
         if (cellCoords != null) {
-            val pieceAtCell = game.board[cellCoords.rank, cellCoords.file]
-            val weCanStartDnd = pieceAtCell != null
+            val pieceAtCell = currentHistoryNode.relatedPosition.board[cellCoords.rank, cellCoords.file]
+            val weCanStartDnd = pieceAtCell?.whitePlayer == currentHistoryNode.relatedPosition.info.whiteTurn
 
             if (weCanStartDnd) {
                 // Highlight start cell and records it
@@ -358,7 +369,7 @@ class ChessBoard : View() {
         val cellCoords = cellCoordinates(evt)
 
         if (dragStartCoordinates != null && cellCoords != null &&
-                game.isValidMove(Move(from = dragStartCoordinates!!, to = cellCoords))){
+                currentHistoryNode.relatedPosition.isValidMove(Move(from = dragStartCoordinates!!, to = cellCoords))){
             validateDnD(cellCoords)
         }
         else {
@@ -371,7 +382,7 @@ class ChessBoard : View() {
             val move = Move(from = dragStartCoordinates!!, to = cellCoords)
             updatePiecesLocations(move)
             resetDnDStatus(cellCoords)
-            fire(FenUpdatingEvent(game.toFEN()))
+            fire(FenUpdatingEvent(currentHistoryNode.relatedPosition.toFEN()))
         }
     }
 
@@ -384,7 +395,7 @@ class ChessBoard : View() {
             prefWidth = cellsSize * 0.5
             prefHeight = cellsSize * 0.5
             style {
-                backgroundColor += c(if (game.info.whiteTurn) "#FFF" else "#000")
+                backgroundColor += c(if (currentHistoryNode.relatedPosition.info.whiteTurn) "#FFF" else "#000")
                 opacity = 1.0
             }
         }
@@ -427,15 +438,15 @@ class MovesHistory : View() {
         flow += Text(text)
     }
 
-    fun addMoveLink(text: String, relatedPosition: ChessGame) {
-        flow += MoveLink(text, relatedPosition, this)
+    fun addMoveLink(text: String, relatedHistoryNode: HistoryNode) {
+        flow += MoveLink(text, relatedHistoryNode, this)
     }
 }
 
-class MoveLink(moveText: String, val relatedPosition: ChessGame, val parentView: MovesHistory) : Hyperlink(moveText){
+class MoveLink(moveText: String, val relatedHistoryNode: HistoryNode, val parentView: MovesHistory) : Hyperlink(moveText){
     init {
         setOnAction {
-            parentView.fire(ChangeChessBoardPosition(fen = relatedPosition.toFEN()))
+            parentView.fire(ChangeChessBoardPosition(historyNode = relatedHistoryNode))
         }
     }
 }

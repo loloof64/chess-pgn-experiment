@@ -3,9 +3,9 @@ package com.loloof64.chess_core.history
 import com.loloof64.chess_core.game.ChessGame
 
 /** Notice that when creating an HistoryNode, it will automatically be added to the given parent node */
-class HistoryNode(val relatedPosition: ChessGame, val parentNode: HistoryNode) {
+class HistoryNode(val relatedPosition: ChessGame, val parentNode: HistoryNode?) {
     init {
-        parentNode.addChild(this)
+        parentNode?.addChild(this)
     }
 
     private val children = mutableListOf<HistoryNode>()
