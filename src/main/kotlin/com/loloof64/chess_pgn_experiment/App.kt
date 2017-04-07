@@ -25,6 +25,7 @@ import java.util.*
 data class FenUpdatingEvent(val fen: String) : FXEvent()
 data class AddFANToHistory(val fan: String, val historyNode: HistoryNode) : FXEvent()
 data class ChangeChessBoardPosition(val historyNode: HistoryNode) : FXEvent()
+class HistoryNeedUpdatingEvent : FXEvent()
 
 fun Stack<Int>.clearTopItem() {
     if (this.isEmpty()) return
@@ -63,6 +64,10 @@ class MainView : View() {
             val currentFEN = currentHistoryNode.relatedPosition.toFEN()
             chessBoard.setHistoryNode(currentHistoryNode)
             fenZone.text = currentFEN
+        }
+
+        subscribe<HistoryNeedUpdatingEvent> {
+            historyZone.updateMovesFromRootNode(historyRootNode)
         }
     }
 
@@ -551,6 +556,15 @@ class MoveLink(moveText: String, val relatedHistoryNode: HistoryNode, val parent
     init {
         setOnAction {
             parentView.fire(ChangeChessBoardPosition(historyNode = relatedHistoryNode))
+        }
+
+        contextmenu {
+            if (relatedHistoryNode.findLineRoot().parentNode != null){ // is not the history main line
+                menuitem("Promote variation") {
+                    relatedHistoryNode.promoteThisLine()
+                    parentView.fire(HistoryNeedUpdatingEvent())
+                }
+            }
         }
     }
 }

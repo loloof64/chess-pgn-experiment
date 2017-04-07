@@ -27,11 +27,63 @@ class HistoryNode(val relatedPosition: ChessGame, val parentNode: HistoryNode?,
         if (childMoveNotAlreadyAdded) _variantsChildren.add(child)
     }
 
-    fun removeChild(child: HistoryNode) {
-        _variantsChildren.remove(child)
+    /**
+     * Clears the line if it is a variant from another parent node, far or not far away
+     * or clears all history if no such parent exists.
+     */
+    fun deleteThisLine() {
+        val lineRoot = findLineRoot(this)
+        val belongsToRootMainLine = lineRoot.parentNode == null
+        if (belongsToRootMainLine) {
+            if (lineRoot.variants.isNotEmpty()) {
+                lineRoot.promoteLine(0)
+                lineRoot._variantsChildren.removeAt(0)
+            }
+            else {
+                lineRoot._mainLineChild = null
+            }
+        } else {
+            val lineRootChildIndexForThisLine = findLineRootChildIndexContainingThisNode()
+            lineRoot._variantsChildren.removeAt(lineRootChildIndexForThisLine!!)
+        }
     }
 
-    fun promoteLine(lineIndex: Int) {
+    private fun findLineRootChildIndexContainingThisNode(): Int? {
+        fun searchForThisNodeInMainLineOf(place: HistoryNode): Boolean {
+            if (place._mainLineChild == null) return false
+            if (place._mainLineChild == this) return true
+            return searchForThisNodeInMainLineOf(place._mainLineChild!!)
+        }
+
+        val lineRoot = findLineRoot()
+        if (lineRoot._variantsChildren.isEmpty()) return null
+        val lineRootChildIndexForThisLine = lineRoot._variantsChildren.map { searchForThisNodeInMainLineOf(it) }
+                .withIndex().filter { (_, value) -> value }[0].index
+        return lineRootChildIndexForThisLine
+    }
+
+    fun findLineRoot(): HistoryNode = findLineRoot(this)
+
+    private fun findLineRoot(node: HistoryNode): HistoryNode {
+        if (node.parentNode == null) return node
+        if (node in node.parentNode._variantsChildren) return node.parentNode
+        return findLineRoot(node.parentNode)
+    }
+
+    fun promoteThisLine() {
+        val lineRoot = findLineRoot()
+        if (lineRoot.parentNode == null) return
+
+        val lineRootChildContainingThisNodeIndex = findLineRootChildIndexContainingThisNode()
+        if (lineRootChildContainingThisNodeIndex == null) return
+
+        // simple swapping
+        val temp = lineRoot._variantsChildren[lineRootChildContainingThisNodeIndex]
+        lineRoot._variantsChildren[lineRootChildContainingThisNodeIndex] = lineRoot._mainLineChild!!
+        lineRoot._mainLineChild = temp
+    }
+
+    private fun promoteLine(lineIndex: Int) {
         if (lineIndex < 0 || lineIndex >= _variantsChildren.size) return
         if (_mainLineChild == null) throw NoMainVariationException()
         val temp = _variantsChildren[lineIndex]
