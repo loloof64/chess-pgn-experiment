@@ -494,6 +494,11 @@ class MovesHistory : View() {
 
     fun addAllMovesFromNode(nodeToAdd: HistoryNode, includeHeadMove: Boolean = true) {
         if (includeHeadMove) addHeadMove(nodeToAdd)
+        else if (nodeToAdd.mainLine?.relatedPosition?.info?.whiteTurn ?:false) {
+            // We need to check for the presence of the mainline
+            // and so, the move number is the one of the node to add, not the main line first move.
+            addText("${nodeToAdd.relatedPosition.info.moveNumber}...")
+        }
         addFirstMainLineMove(nodeToAdd)
         addVariantsMoves(nodeToAdd)
         if (nodeToAdd.mainLine != null) {
