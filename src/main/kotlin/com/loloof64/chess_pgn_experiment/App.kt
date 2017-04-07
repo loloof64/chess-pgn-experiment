@@ -20,10 +20,27 @@ import javafx.scene.text.Text
 import javafx.scene.text.TextFlow
 import javafx.util.Duration
 import tornadofx.*
+import java.util.*
 
 data class FenUpdatingEvent(val fen: String) : FXEvent()
 data class AddFANToHistory(val fan: String, val historyNode: HistoryNode) : FXEvent()
 data class ChangeChessBoardPosition(val historyNode: HistoryNode) : FXEvent()
+
+fun Stack<Int>.clearTopItem() {
+    if (this.isEmpty()) return
+
+    val lastItemIndex = this.size - 1
+    this[lastItemIndex] = 0
+}
+
+fun Stack<Int>.incrementTopItem() {
+    if (this.isEmpty()) return
+
+    val lastItemIndex = this.size - 1
+    this[lastItemIndex]++
+}
+
+fun Stack<Int>.topItem(): Int = this.peek()
 
 fun main(args: Array<String>) {
     Application.launch(MyApp::class.java, *args)
@@ -429,6 +446,13 @@ class MovesHistory : View() {
     private var flow : TextFlow by singleAssign()
     private var tabLevel = 0
 
+    private val currentMovesNumberPerVariantTextLine = Stack<Int>()
+
+    companion object {
+        val tabulation = "    "
+        val maximumCompleteMovesPerVariantTextLine = 4
+    }
+
     override val root = scrollpane {
         flow = textflow {  }
         prefWidth = 500.0
@@ -444,6 +468,7 @@ class MovesHistory : View() {
 
     fun updateMovesFromRootNode(rootNode: HistoryNode) {
         flow.clear()
+        currentMovesNumberPerVariantTextLine.push(0) // Important : do not forget this line !!!
         addAllMovesFromNode(rootNode)
     }
 
@@ -457,13 +482,21 @@ class MovesHistory : View() {
         }
         else {
             addMoveLink(nodeToAdd.moveLeadingToThisNodeFAN!!, nodeToAdd)
+            if (nodeToAdd.relatedPosition.info.whiteTurn) {
+                currentMovesNumberPerVariantTextLine.incrementTopItem()
+                if (currentMovesNumberPerVariantTextLine.topItem() >= maximumCompleteMovesPerVariantTextLine) {
+                    addText("\n")
+                    (1..tabLevel).forEach { addText(tabulation) }
+                    currentMovesNumberPerVariantTextLine.clearTopItem()
+                }
+            }
         }
     }
 
     fun addFirstMainLineMove(nodeToAdd: HistoryNode) {
         if (nodeToAdd.variants.isNotEmpty()) {
             // If we have variants, the first main line move must be placed here
-            if (nodeToAdd.mainLine!=null && !nodeToAdd.mainLine!!.relatedPosition.info.whiteTurn) {
+            if (!nodeToAdd.mainLine!!.relatedPosition.info.whiteTurn) {
                 addText("${nodeToAdd.mainLine!!.relatedPosition.info.moveNumber}.")
             }
             addMoveLink(nodeToAdd.mainLine!!.moveLeadingToThisNodeFAN!!, nodeToAdd.mainLine!!)
@@ -471,8 +504,9 @@ class MovesHistory : View() {
     }
 
     fun addVariantsMoves(nodeToAdd: HistoryNode) {
-        val tabulation = "    "
         nodeToAdd.variants.forEach { currentChild ->
+            currentMovesNumberPerVariantTextLine.push(0)
+
             tabLevel++
             addText("\n")
             (1..tabLevel).forEach { addText(tabulation) }
@@ -489,7 +523,11 @@ class MovesHistory : View() {
             addText(")\n")
             tabLevel--
             (1..tabLevel).forEach { addText(tabulation) }
+
+            currentMovesNumberPerVariantTextLine.pop()
         }
+
+        if (nodeToAdd.variants.isNotEmpty()) currentMovesNumberPerVariantTextLine.clearTopItem()
     }
 
     fun addAllMovesFromNode(nodeToAdd: HistoryNode, includeHeadMove: Boolean = true) {
