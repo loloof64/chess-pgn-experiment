@@ -17,8 +17,14 @@ class HistoryNode(val relatedPosition: ChessGame, val parentNode: HistoryNode?,
 
     /** Notice that the method first checks if the child is not yet added */
     fun addChild(child: HistoryNode) {
-        if (_mainLineChild == null) _mainLineChild = child
-        if (child !in _variantsChildren && child != mainLine) _variantsChildren.add(child)
+        if (_mainLineChild == null) {
+            _mainLineChild = child
+            return
+        }
+        val childMoveNotAlreadyAdded = _mainLineChild!!.moveLeadingToThisNodeFAN != child.moveLeadingToThisNodeFAN
+            && _variantsChildren.all { it.moveLeadingToThisNodeFAN != child.moveLeadingToThisNodeFAN }
+
+        if (childMoveNotAlreadyAdded) _variantsChildren.add(child)
     }
 
     fun removeChild(child: HistoryNode) {

@@ -447,7 +447,7 @@ class MovesHistory : View() {
         addAllMovesFromNode(rootNode)
     }
 
-    fun addHeadMoveAndFirstMainLineMove(nodeToAdd: HistoryNode){
+    fun addHeadMove(nodeToAdd: HistoryNode){
         if (!nodeToAdd.relatedPosition.info.whiteTurn) {
             addText("${nodeToAdd.relatedPosition.info.moveNumber}.")
         }
@@ -458,7 +458,9 @@ class MovesHistory : View() {
         else {
             addMoveLink(nodeToAdd.moveLeadingToThisNodeFAN!!, nodeToAdd)
         }
+    }
 
+    fun addFirstMainLineMove(nodeToAdd: HistoryNode) {
         if (nodeToAdd.variants.isNotEmpty()) {
             // If we have variants, the first main line move must be placed here
             if (nodeToAdd.mainLine!=null && !nodeToAdd.mainLine!!.relatedPosition.info.whiteTurn) {
@@ -490,21 +492,14 @@ class MovesHistory : View() {
         }
     }
 
-    fun addAllMovesFromNode(nodeToAdd: HistoryNode) {
-        addHeadMoveAndFirstMainLineMove(nodeToAdd)
+    fun addAllMovesFromNode(nodeToAdd: HistoryNode, includeHeadMove: Boolean = true) {
+        if (includeHeadMove) addHeadMove(nodeToAdd)
+        addFirstMainLineMove(nodeToAdd)
         addVariantsMoves(nodeToAdd)
         if (nodeToAdd.mainLine != null) {
             // If we have variants, no need to duplicate the first main line move
-            if (nodeToAdd.variants.isNotEmpty()) {
-                if (nodeToAdd.mainLine!!.mainLine != null) {
-                    if (!nodeToAdd.mainLine!!.relatedPosition.info.whiteTurn){
-                        addText("${nodeToAdd.mainLine!!.relatedPosition.info.moveNumber}...")
-                    }
-                    addAllMovesFromNode(nodeToAdd.mainLine!!.mainLine!!)
-                }
-            } else {
-                addAllMovesFromNode(nodeToAdd.mainLine!!)
-            }
+            val needingHeadMove = nodeToAdd.variants.isEmpty()
+            addAllMovesFromNode(nodeToAdd.mainLine!!, includeHeadMove = needingHeadMove)
         }
     }
 }
