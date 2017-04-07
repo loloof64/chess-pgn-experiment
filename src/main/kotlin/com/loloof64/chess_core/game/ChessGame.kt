@@ -51,8 +51,15 @@ data class ChessGame(val board: ChessBoard, val info: GameInfo){
                 val samePieceWithSameFile = allMovesWithSameEndSquareAndSameMovingPiece.any{ it.from.file == move.from.file }
 
                 builder.append(pieceAtStartSquare.toFEN().toUpperCase())
-                if (samePieceWithSameRank) builder.append(('a'.toInt() + move.from.file).toChar())
-                if (samePieceWithSameFile) builder.append(('1'.toInt() + move.from.rank).toChar())
+                if (allMovesWithSameEndSquareAndSameMovingPiece.isNotEmpty()){
+                    if (samePieceWithSameFile || samePieceWithSameRank){
+                        if (samePieceWithSameRank) builder.append(('a'.toInt() + move.from.file).toChar())
+                        if (samePieceWithSameFile) builder.append(('1'.toInt() + move.from.rank).toChar())
+                    }
+                    else {
+                        builder.append(('a'.toInt() + move.from.file).toChar())
+                    }
+                }
 
                 val pieceAtEndSquare = board[move.to.rank, move.to.file]
                 val isCapturingMove = pieceAtEndSquare?.whitePlayer == !info.whiteTurn
