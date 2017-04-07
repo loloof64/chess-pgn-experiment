@@ -11,20 +11,33 @@ class HistoryNode(val relatedPosition: ChessGame, val parentNode: HistoryNode?,
             {"Only the root node can bypass the moveLeadingToThisNodeFAN parameter."}
     }
 
-    /**
-     * First child belongs to the main line
-     */
-    private val _children = mutableListOf<HistoryNode>()
+    private var _mainLineChild : HistoryNode? = null
+
+    private val _variantsChildren = mutableListOf<HistoryNode>()
 
     /** Notice that the method first checks if the child is not yet added */
     fun addChild(child: HistoryNode) {
-        if (child !in _children) _children.add(child)
+        if (_mainLineChild == null) _mainLineChild = child
+        if (child !in _variantsChildren && child != mainLine) _variantsChildren.add(child)
     }
 
     fun removeChild(child: HistoryNode) {
-        _children.remove(child)
+        _variantsChildren.remove(child)
     }
 
-    val children : List<HistoryNode>
-            get() = _children
+    fun promoteLine(lineIndex: Int) {
+        if (lineIndex < 0 || lineIndex >= _variantsChildren.size) return
+        if (_mainLineChild == null) throw NoMainVariationException()
+        val temp = _variantsChildren[lineIndex]
+        _variantsChildren[lineIndex] = _mainLineChild!!
+        _mainLineChild = temp
+    }
+
+    val mainLine: HistoryNode?
+        get() = _mainLineChild
+
+    val variants: List<HistoryNode>
+            get() = _variantsChildren
 }
+
+class NoMainVariationException : Exception()

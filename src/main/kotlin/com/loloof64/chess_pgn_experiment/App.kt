@@ -447,8 +447,7 @@ class MovesHistory : View() {
         addAllMovesFromNode(rootNode)
     }
 
-    /** Just adding the first move, and if needed (white player ?), the move number */
-    fun addHeadMove(nodeToAdd: HistoryNode){
+    fun addHeadMoveAndFirstMainLineMove(nodeToAdd: HistoryNode){
         if (!nodeToAdd.relatedPosition.info.whiteTurn) {
             addText("${nodeToAdd.relatedPosition.info.moveNumber}.")
         }
@@ -459,35 +458,54 @@ class MovesHistory : View() {
         else {
             addMoveLink(nodeToAdd.moveLeadingToThisNodeFAN!!, nodeToAdd)
         }
+
+        if (nodeToAdd.variants.isNotEmpty()) {
+            // If we have variants, the first main line move must be placed here
+            if (nodeToAdd.mainLine!=null && !nodeToAdd.mainLine!!.relatedPosition.info.whiteTurn) {
+                addText("${nodeToAdd.mainLine!!.relatedPosition.info.moveNumber}.")
+            }
+            addMoveLink(nodeToAdd.mainLine!!.moveLeadingToThisNodeFAN!!, nodeToAdd.mainLine!!)
+        }
     }
 
     fun addVariantsMoves(nodeToAdd: HistoryNode) {
         val tabulation = "    "
-        nodeToAdd.children.forEachIndexed { index, currentChild ->
-            if (index > 0) { // ignoring the main line
-                tabLevel++
-                addText("\n")
-                (1..tabLevel).forEach { addText(tabulation) }
-                addText("(\n")
-                (1..tabLevel).forEach { addText(tabulation) }
+        nodeToAdd.variants.forEach { currentChild ->
+            tabLevel++
+            addText("\n")
+            (1..tabLevel).forEach { addText(tabulation) }
+            addText("(\n")
+            (1..tabLevel).forEach { addText(tabulation) }
 
-                addText("${currentChild.parentNode!!.relatedPosition.info.moveNumber}.")
-                if (!currentChild.parentNode.relatedPosition.info.whiteTurn) addText("..")
+            if (!currentChild.parentNode!!.relatedPosition.info.whiteTurn)
+                addText("${currentChild.parentNode.relatedPosition.info.moveNumber}...")
 
-                addAllMovesFromNode(currentChild)
+            addAllMovesFromNode(currentChild)
 
-                addText("\n")
-                (1..tabLevel).forEach { addText(tabulation) }
-                addText(")")
-                tabLevel--
-            }
+            addText("\n")
+            (1..tabLevel).forEach { addText(tabulation) }
+            addText(")\n")
+            tabLevel--
+            (1..tabLevel).forEach { addText(tabulation) }
         }
     }
 
     fun addAllMovesFromNode(nodeToAdd: HistoryNode) {
-        addHeadMove(nodeToAdd)
+        addHeadMoveAndFirstMainLineMove(nodeToAdd)
         addVariantsMoves(nodeToAdd)
-        if (nodeToAdd.children.isNotEmpty()) addAllMovesFromNode(nodeToAdd.children[0])
+        if (nodeToAdd.mainLine != null) {
+            // If we have variants, no need to duplicate the first main line move
+            if (nodeToAdd.variants.isNotEmpty()) {
+                if (nodeToAdd.mainLine!!.mainLine != null) {
+                    if (!nodeToAdd.mainLine!!.relatedPosition.info.whiteTurn){
+                        addText("${nodeToAdd.mainLine!!.relatedPosition.info.moveNumber}...")
+                    }
+                    addAllMovesFromNode(nodeToAdd.mainLine!!.mainLine!!)
+                }
+            } else {
+                addAllMovesFromNode(nodeToAdd.mainLine!!)
+            }
+        }
     }
 }
 
