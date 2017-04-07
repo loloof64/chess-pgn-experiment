@@ -51,7 +51,7 @@ class HistoryNode(val relatedPosition: ChessGame, val parentNode: HistoryNode?,
     private fun findLineRootChildIndexContainingThisNode(): Int? {
         fun searchForThisNodeInMainLineOf(place: HistoryNode): Boolean {
             if (place._mainLineChild == null) return false
-            if (place._mainLineChild == this) return true
+            if (place == this || place._mainLineChild == this) return true
             return searchForThisNodeInMainLineOf(place._mainLineChild!!)
         }
 
