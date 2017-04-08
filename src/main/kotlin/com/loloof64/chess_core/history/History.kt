@@ -43,10 +43,14 @@ class HistoryNode(val relatedPosition: ChessGame, val parentNode: HistoryNode?,
         }
     }
 
+    /**
+     * Line root is the node in the parent line for which this node is a direct child.
+     */
     private fun findLineRootChildIndexContainingThisNode(): Int? {
         fun searchForThisNodeInMainLineOf(place: HistoryNode): Boolean {
+            if (place == this) return true  // Very important : this line must be above the following ones !!!
+            if (place._mainLineChild == this) return true
             if (place._mainLineChild == null) return false
-            if (place == this || place._mainLineChild == this) return true
             return searchForThisNodeInMainLineOf(place._mainLineChild!!)
         }
 
@@ -57,6 +61,9 @@ class HistoryNode(val relatedPosition: ChessGame, val parentNode: HistoryNode?,
         return lineRootChildIndexForThisLine
     }
 
+    /**
+     * Line root is the node in the parent line for which this node is a direct child.
+     */
     fun findLineRoot(): HistoryNode = findLineRoot(this)
 
     private fun findLineRoot(node: HistoryNode): HistoryNode {
@@ -67,7 +74,7 @@ class HistoryNode(val relatedPosition: ChessGame, val parentNode: HistoryNode?,
 
     fun promoteThisLine() {
         val lineRoot = findLineRoot()
-        if (lineRoot.parentNode == null) return
+        if (lineRoot.parentNode == null) return // Cannot promote main line
 
         val lineRootChildContainingThisNodeIndex = findLineRootChildIndexContainingThisNode()
         if (lineRootChildContainingThisNodeIndex == null) return
@@ -78,19 +85,9 @@ class HistoryNode(val relatedPosition: ChessGame, val parentNode: HistoryNode?,
         lineRoot._mainLineChild = temp
     }
 
-    private fun promoteLine(lineIndex: Int) {
-        if (lineIndex < 0 || lineIndex >= _variantsChildren.size) return
-        if (_mainLineChild == null) throw NoMainVariationException()
-        val temp = _variantsChildren[lineIndex]
-        _variantsChildren[lineIndex] = _mainLineChild!!
-        _mainLineChild = temp
-    }
-
     val mainLine: HistoryNode?
         get() = _mainLineChild
 
     val variants: List<HistoryNode>
             get() = _variantsChildren
 }
-
-class NoMainVariationException : Exception()
