@@ -13,8 +13,10 @@ import javafx.scene.Cursor
 import javafx.scene.Group
 import javafx.scene.control.Hyperlink
 import javafx.scene.control.Label
+import javafx.scene.control.TextInputDialog
 import javafx.scene.image.ImageView
 import javafx.scene.input.MouseEvent
+import javafx.scene.paint.Color
 import javafx.scene.text.Font
 import javafx.scene.text.Text
 import javafx.scene.text.TextFlow
@@ -463,12 +465,16 @@ class MovesHistory : View() {
         prefWidth = 500.0
     }
 
-    private fun addText(text: String) {
-        flow += Text(text)
+    private fun addText(text: String, textColor: Color = Color.BLACK) {
+        flow += Text(text).apply{
+            style {
+                fill = textColor
+            }
+        }
     }
 
     private fun addMoveLink(text: String, relatedHistoryNode: HistoryNode) {
-        flow += MoveLink(text, relatedHistoryNode, this)
+        flow += MoveLink(moveText = text, relatedHistoryNode = relatedHistoryNode, parentView = this)
     }
 
     fun updateMovesFromRootNode(rootNode: HistoryNode) {
@@ -477,16 +483,22 @@ class MovesHistory : View() {
         addAllMovesFromNode(rootNode)
     }
 
-    fun addHeadMove(nodeToAdd: HistoryNode){
+    fun addHeadMoveFor(nodeToAdd: HistoryNode){
         if (!nodeToAdd.relatedPosition.info.whiteTurn) {
             addText("${nodeToAdd.relatedPosition.info.moveNumber}.")
         }
 
         if (nodeToAdd.parentNode == null) {
+            if (nodeToAdd.comment != null){
+                addText(nodeToAdd.comment!!, Color.GREEN)
+                addText("\n")
+            }
+
             addMoveLink("|", nodeToAdd)
         }
         else {
             addMoveLink(nodeToAdd.moveLeadingToThisNodeFAN!!, nodeToAdd)
+            addCommentTextFor(nodeToAdd)
             if (nodeToAdd.relatedPosition.info.whiteTurn) {
                 currentMovesNumberPerVariantTextLine.incrementTopItem()
                 if (currentMovesNumberPerVariantTextLine.topItem() >= maximumCompleteMovesPerVariantTextLine) {
@@ -498,17 +510,33 @@ class MovesHistory : View() {
         }
     }
 
-    fun addFirstMainLineMove(nodeToAdd: HistoryNode) {
+    private fun addCommentTextFor(nodeToAdd: HistoryNode) {
+        if (nodeToAdd.comment != null) {
+            addText("\n")
+            (1..tabLevel).forEach { addText(tabulation) }
+            addText(nodeToAdd.comment!!, Color.GREEN)
+            addText("\n")
+            (1..tabLevel).forEach { addText(tabulation) }
+            currentMovesNumberPerVariantTextLine.clearTopItem()
+            // adding move number text if needed
+            if (!nodeToAdd.relatedPosition.info.whiteTurn) {
+                addText("${nodeToAdd.relatedPosition.info.moveNumber}...")
+            }
+        }
+    }
+
+    fun addMainLineFirstMoveFor_IfNeeded(nodeToAdd: HistoryNode) {
         if (nodeToAdd.variants.isNotEmpty()) {
             // If we have variants, the first main line move must be placed here
             if (!nodeToAdd.mainLine!!.relatedPosition.info.whiteTurn) {
                 addText("${nodeToAdd.mainLine!!.relatedPosition.info.moveNumber}.")
             }
             addMoveLink(nodeToAdd.mainLine!!.moveLeadingToThisNodeFAN!!, nodeToAdd.mainLine!!)
+            addCommentTextFor(nodeToAdd)
         }
     }
 
-    fun addVariantsMoves(nodeToAdd: HistoryNode) {
+    fun addVariantsMovesFor(nodeToAdd: HistoryNode) {
         nodeToAdd.variants.forEach { currentChild ->
             currentMovesNumberPerVariantTextLine.push(0)
 
@@ -536,14 +564,14 @@ class MovesHistory : View() {
     }
 
     fun addAllMovesFromNode(nodeToAdd: HistoryNode, includeHeadMove: Boolean = true) {
-        if (includeHeadMove) addHeadMove(nodeToAdd)
+        if (includeHeadMove) addHeadMoveFor(nodeToAdd)
         else if (nodeToAdd.mainLine?.relatedPosition?.info?.whiteTurn ?:false) {
             // We need to check for the presence of the mainline
             // and so, the move number is the one of the node to add, not the main line first move.
             addText("${nodeToAdd.relatedPosition.info.moveNumber}...")
         }
-        addFirstMainLineMove(nodeToAdd)
-        addVariantsMoves(nodeToAdd)
+        addMainLineFirstMoveFor_IfNeeded(nodeToAdd)
+        addVariantsMovesFor(nodeToAdd)
         if (nodeToAdd.mainLine != null) {
             // If we have variants, no need to duplicate the first main line move
             val needingHeadMove = nodeToAdd.variants.isEmpty()
@@ -569,6 +597,41 @@ class MoveLink(moveText: String, val relatedHistoryNode: HistoryNode, val parent
                 val lineRootNode = relatedHistoryNode.findLineRoot()
                 parentView.fire(ChangeChessBoardPosition(historyNode = lineRootNode))
                 relatedHistoryNode.deleteThisLine()
+                parentView.fire(HistoryNeedUpdatingEvent())
+            }
+
+            if (relatedHistoryNode.comment == null) menuitem("Add comment ...") {
+                val promptDialog = TextInputDialog()
+                promptDialog.title = "Add comment"
+                promptDialog.contentText = "Set comment : "
+
+                val result = promptDialog.showAndWait()
+                if (result.isPresent){
+                    if (result.get().isNotBlank()){
+                        relatedHistoryNode.setComment(result.get())
+                    }
+                    parentView.fire(HistoryNeedUpdatingEvent())
+                }
+            }
+
+            if (relatedHistoryNode.comment != null) menuitem("Change comment ...") {
+                val promptDialog = TextInputDialog(relatedHistoryNode.comment!!)
+                promptDialog.title = "Change comment"
+                promptDialog.contentText = "New comment : "
+
+                val result = promptDialog.showAndWait()
+                if (result.isPresent){
+                    if (result.get().isNotBlank()){
+                        relatedHistoryNode.setComment(result.get())
+                    }
+                    else {
+                        relatedHistoryNode.removeComment()
+                    }
+                    parentView.fire(HistoryNeedUpdatingEvent())
+                }
+            }
+            if (relatedHistoryNode.comment != null) menuitem("Delete comment") {
+                relatedHistoryNode.removeComment()
                 parentView.fire(HistoryNeedUpdatingEvent())
             }
         }

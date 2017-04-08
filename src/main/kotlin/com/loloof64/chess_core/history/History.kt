@@ -11,9 +11,22 @@ class HistoryNode(val relatedPosition: ChessGame, val parentNode: HistoryNode?,
             {"Only the root node can bypass the moveLeadingToThisNodeFAN parameter."}
     }
 
+    private var _comment: String? = null
+
     private var _mainLineChild : HistoryNode? = null
 
     private val _variantsChildren = mutableListOf<HistoryNode>()
+
+    fun setComment(comment: String) {
+        _comment = comment
+    }
+
+    fun removeComment() {
+        _comment = null
+    }
+
+    val comment: String?
+        get() = _comment
 
     /** Notice that the method first checks if the child is not yet added */
     fun addChild(child: HistoryNode) {
