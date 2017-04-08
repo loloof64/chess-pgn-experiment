@@ -565,6 +565,12 @@ class MoveLink(moveText: String, val relatedHistoryNode: HistoryNode, val parent
                     parentView.fire(HistoryNeedUpdatingEvent())
                 }
             }
+            menuitem("Delete this line") {
+                val lineRootNode = relatedHistoryNode.findLineRoot()
+                parentView.fire(ChangeChessBoardPosition(historyNode = lineRootNode))
+                relatedHistoryNode.deleteThisLine()
+                parentView.fire(HistoryNeedUpdatingEvent())
+            }
         }
     }
 }

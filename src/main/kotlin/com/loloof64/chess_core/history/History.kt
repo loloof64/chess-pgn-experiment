@@ -35,13 +35,8 @@ class HistoryNode(val relatedPosition: ChessGame, val parentNode: HistoryNode?,
         val lineRoot = findLineRoot(this)
         val belongsToRootMainLine = lineRoot.parentNode == null
         if (belongsToRootMainLine) {
-            if (lineRoot.variants.isNotEmpty()) {
-                lineRoot.promoteLine(0)
-                lineRoot._variantsChildren.removeAt(0)
-            }
-            else {
-                lineRoot._mainLineChild = null
-            }
+            lineRoot._variantsChildren.clear()
+            lineRoot._mainLineChild = null
         } else {
             val lineRootChildIndexForThisLine = findLineRootChildIndexContainingThisNode()
             lineRoot._variantsChildren.removeAt(lineRootChildIndexForThisLine!!)
